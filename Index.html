@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IRCS Athlete Tracker</title>
+<style>
+  :root {
+    --crimson:#6A0A13; --navy:#001230; --gray:#D1D3D4; --gray2:#A7A9AC;
+    --paper:#F4F5F7; --white:#fff; --green:#1a8a38; --green-bg:#e8f7ec;
+    --red:#C8302B; --red-bg:#fde8e8; --yellow-bg:#fff8e1; --ink:#0E1726; --border:#dde1e7;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:Arial,Helvetica,sans-serif;background:var(--paper);color:var(--ink);font-size:14px;}
+
+  nav{background:var(--navy);display:flex;align-items:center;padding:0 20px;height:56px;gap:4px;
+      position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.35);}
+  .nav-logo{font-family:"Bookman Old Style",Georgia,serif;color:#fff;font-size:17px;font-weight:bold;
+            margin-right:20px;padding-right:20px;border-right:1px solid rgba(255,255,255,.2);white-space:nowrap;}
+  .nav-logo span{color:var(--crimson);}
+  .tab-btn{background:none;border:none;color:var(--gray);padding:8px 14px;border-radius:6px;cursor:pointer;
+           font-size:13px;font-weight:600;transition:background .15s,color .15s;white-space:nowrap;}
+  .tab-btn:hover{background:rgba(255,255,255,.08);color:#fff;}
+  .tab-btn.active{background:var(--crimson);color:#fff;}
+
+  .page{display:none;padding:24px 20px 60px;max-width:1240px;margin:0 auto;}
+  .page.active{display:block;}
+  .page-title{font-family:"Bookman Old Style",Georgia,serif;font-size:22px;color:var(--navy);margin-bottom:4px;}
+  .page-sub{color:var(--gray2);font-size:12.5px;margin-bottom:24px;}
+
+  .card{background:var(--white);border-radius:10px;border:1px solid var(--border);padding:20px;
+        margin-bottom:18px;box-shadow:0 2px 8px rgba(0,18,48,.06);}
+  .card-title{font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:var(--gray2);margin-bottom:14px;font-weight:700;}
+
+  .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:7px;border:none;
+       cursor:pointer;font-size:13px;font-weight:600;transition:opacity .15s;}
+  .btn:hover{opacity:.85;}
+  .btn-primary{background:var(--crimson);color:#fff;}
+  .btn-navy{background:var(--navy);color:#fff;}
+  .btn-ghost{background:transparent;color:var(--navy);border:1.5px solid var(--border);}
+  .btn-green{background:var(--green);color:#fff;}
+  .btn-sm{padding:5px 11px;font-size:12px;}
+
+  select,input[type="text"],input[type="date"],input[type="number"]{
+    border:1.5px solid var(--border);border-radius:7px;padding:8px 12px;
+    font-size:13px;color:var(--ink);background:var(--white);outline:none;transition:border-color .15s;}
+  select:focus,input:focus{border-color:var(--navy);}
+  label{font-size:12px;font-weight:700;color:var(--gray2);letter-spacing:.4px;text-transform:uppercase;display:block;margin-bottom:5px;}
+  .field{margin-bottom:14px;}
+  .field-row{display:flex;gap:14px;flex-wrap:wrap;}
+  .field-row .field{flex:1;min-width:140px;}
+
+  .tbl-wrap{overflow-x:auto;border-radius:10px;border:1px solid var(--border);}
+  table{border-collapse:collapse;width:100%;font-size:13px;background:#fff;}
+  th{background:var(--navy);color:#fff;padding:9px 10px;text-align:left;font-size:10.5px;
+     letter-spacing:.5px;text-transform:uppercase;white-space:nowrap;}
+  td{padding:7px 10px;border-bottom:1px solid var(--border);white-space:nowrap;}
+  tr:last-child td{border-bottom:none;}
+  .badge{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;padding:2px 8px;border-radius:20px;}
+  .badge-wt{background:#e8f0fe;color:var(--navy);}
+  .badge-hope{background:#fff0e0;color:#7a4500;}
+
+  /* ── DATABASE INLINE EDITING ── */
+  tr.db-period-hdr td{background:var(--navy);color:#fff;font-weight:700;font-size:10.5px;
+                      letter-spacing:1px;text-transform:uppercase;padding:7px 10px;}
+  tr.db-period-hdr:hover td{background:var(--navy);}
+  tr.db-athlete-hdr td{background:#f0f2f5;font-weight:700;color:var(--navy);font-size:12px;padding:5px 10px;}
+  tr.db-athlete-hdr:hover td{background:#e8eaf0;}
+
+  td.db-name{font-weight:700;color:var(--navy);min-width:150px;}
+  td.db-date{font-size:12px;color:var(--gray2);min-width:90px;}
+  td.calc{color:var(--navy);font-weight:700;background:#eef6f0;font-size:13px;}
+
+  /* inline edit cell */
+  td.editable{cursor:pointer;position:relative;min-width:70px;}
+  td.editable:hover{background:#fffbe6 !important;}
+  td.editable.editing{padding:0;background:#fff !important;}
+  .cell-input{
+    width:100%;height:100%;border:2px solid var(--navy);border-radius:0;
+    padding:6px 8px;font-size:13px;font-weight:600;background:#fffbe6;
+    outline:none;text-align:center;min-width:65px;
+  }
+  .fly-mph-live{font-size:10px;color:var(--green);font-weight:700;display:block;margin-top:1px;}
+
+  td.unsaved{background:#fffbe6 !important;}
+  .save-row-btn{
+    background:var(--green);color:#fff;border:none;border-radius:5px;
+    padding:3px 9px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;
+  }
+  .del-row-btn{
+    background:transparent;color:var(--red);border:1px solid var(--red);border-radius:5px;
+    padding:3px 7px;font-size:11px;cursor:pointer;margin-left:4px;
+  }
+  .saved-flash{color:var(--green);font-size:11px;font-weight:700;}
+
+  /* add date row bar */
+  .add-date-bar{
+    display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;
+    background:var(--navy);border-radius:8px;padding:12px 16px;margin-bottom:14px;
+  }
+  .add-date-bar label{color:var(--gray);margin-bottom:3px;}
+  .add-date-bar select,.add-date-bar input[type="date"]{background:#0d2750;border-color:#1a4070;color:#fff;}
+  .add-date-bar select option{background:#001230;color:#fff;}
+
+  /* ── DRESS ── */
+  .dress-grid-wrap{overflow:auto;max-height:60vh;border-radius:10px;border:1px solid var(--border);}
+  .dress-grid{border-collapse:collapse;font-size:12px;}
+  .dress-grid th,.dress-grid td{border:1px solid var(--border);padding:0;}
+  .dress-grid th.week-hdr{background:var(--crimson);color:#fff;text-align:center;font-size:10px;letter-spacing:.6px;padding:5px 8px;}
+  .dress-grid th.day-hdr{background:var(--navy);color:#fff;text-align:center;font-size:10px;padding:5px 6px;min-width:52px;}
+  .dress-grid th.col-period{background:var(--navy);color:#fff;text-align:left;padding:7px 10px;min-width:70px;position:sticky;left:0;z-index:3;}
+  .dress-grid th.col-name{background:var(--navy);color:#fff;text-align:left;padding:7px 10px;min-width:150px;position:sticky;left:70px;z-index:3;}
+  .dress-grid th.col-tally{background:var(--navy);color:#fff;text-align:center;padding:7px 8px;min-width:52px;position:sticky;left:220px;z-index:3;}
+  .dress-grid td.col-period{background:#f0f2f5;font-weight:700;font-size:11px;color:var(--navy);padding:6px 10px;position:sticky;left:0;z-index:2;}
+  .dress-grid td.col-name{background:#fff;padding:6px 10px;position:sticky;left:70px;z-index:2;border-right:2px solid var(--border);}
+  .dress-grid td.col-tally{background:var(--yellow-bg);font-weight:700;text-align:center;padding:6px 8px;position:sticky;left:220px;z-index:2;color:#7a4500;border-right:2px solid var(--border);}
+  .dress-grid tr.period-divider td{background:var(--navy);color:#fff;font-weight:700;font-size:10.5px;letter-spacing:1px;text-transform:uppercase;padding:5px 10px;}
+  .dress-grid th.score-hdr{background:#1a5c30;color:#fff;text-align:center;font-size:10px;
+    letter-spacing:.6px;padding:5px 8px;min-width:54px;border-left:2px solid rgba(255,255,255,.3);}
+  .dress-grid td.week-score-cell{text-align:center;font-size:13px;border-left:2px solid var(--border);min-width:54px;}
+  .dress-cell{width:100%;height:32px;border:none;background:transparent;font-size:11px;font-weight:700;text-align:center;cursor:pointer;color:var(--ink);}
+  .dress-cell.has-v{background:var(--red-bg);color:var(--red);}
+
+  /* ── DASHBOARD ── */
+  .player-card{display:grid;grid-template-columns:220px 1fr;background:var(--navy);border-radius:14px;
+               overflow:hidden;box-shadow:0 16px 48px rgba(0,18,48,.35);margin-bottom:24px;}
+  .player-left{background:linear-gradient(160deg,#07275a,#001230);padding:24px 18px;text-align:center;
+               border-right:1px solid rgba(255,255,255,.08);}
+  .player-photo{width:148px;height:168px;border-radius:10px;border:2px solid rgba(255,255,255,.15);
+                margin:0 auto 16px;background:linear-gradient(135deg,#0d2f60,#06234f);
+                display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.25);font-size:11px;}
+  .player-name{color:#fff;font-family:"Bookman Old Style",Georgia,serif;font-size:20px;}
+  .player-meta{color:var(--gray2);font-size:12px;margin-top:6px;line-height:1.7;}
+  .player-sport{display:inline-block;background:var(--crimson);color:#fff;font-size:10px;font-weight:700;
+                letter-spacing:.8px;text-transform:uppercase;padding:3px 12px;border-radius:20px;margin-top:12px;}
+  .player-right{background:#fff;padding:20px 22px;}
+  .stat-table{width:100%;border-collapse:collapse;}
+  .stat-table th{background:#f4f5f7;color:var(--gray2);font-size:10px;letter-spacing:.7px;text-transform:uppercase;
+                 padding:8px 10px;text-align:center;border-bottom:2px solid var(--border);}
+  .stat-table th:first-child{text-align:left;}
+  .stat-table td{padding:9px 10px;border-bottom:1px solid var(--border);font-size:13px;text-align:center;}
+  .stat-table td:first-child{text-align:left;font-weight:700;color:var(--navy);font-family:"Bookman Old Style",Georgia,serif;}
+  .stat-table tr:last-child td{border-bottom:none;}
+  .up{color:var(--green);font-weight:700;} .dn{color:var(--red);font-weight:700;}
+  .delta-up{color:var(--green);font-weight:700;font-size:12px;}
+  .delta-dn{color:var(--red);font-weight:700;font-size:12px;}
+  .delta-neu{color:var(--gray2);font-size:12px;}
+  .class-avg-row td{background:var(--navy);color:#fff;font-weight:700;}
+
+  /* ── QUICK LOG ── */
+  .quick-log-panel{background:var(--white);border-radius:10px;border:1px solid var(--border);
+                   padding:18px 20px;margin-bottom:18px;box-shadow:0 2px 8px rgba(0,18,48,.06);}
+  .ql-table{width:100%;border-collapse:collapse;font-size:13px;}
+  .ql-table th{background:#f4f5f7;color:var(--gray2);font-size:10px;letter-spacing:.5px;text-transform:uppercase;
+               padding:7px 10px;border-bottom:2px solid var(--border);text-align:left;}
+  .ql-table td{padding:5px 6px;border-bottom:1px solid #f0f2f5;vertical-align:middle;}
+  .ql-table tr:last-child td{border-bottom:none;}
+  .ql-name{font-weight:700;color:var(--navy);padding:5px 10px;min-width:150px;}
+  .ql-input{width:90px;padding:6px 8px;border:1.5px solid var(--border);border-radius:6px;
+            font-size:13px;text-align:center;transition:border-color .15s;}
+  .ql-input:focus{border-color:var(--navy);outline:none;}
+  .ql-mph{min-width:80px;font-weight:700;color:var(--navy);font-size:14px;padding:5px 10px;text-align:center;}
+  .ql-mph.live{color:var(--green);}
+  .ql-saved{font-size:11px;color:var(--green);padding:0 6px;}
+  .ql-save-all-row{display:flex;gap:10px;align-items:center;margin-top:14px;flex-wrap:wrap;}
+
+  /* ── NOTES ── */
+  .notes-grid{display:grid;gap:14px;}
+  .note-card{background:var(--white);border-radius:10px;border:1px solid var(--border);
+             padding:16px 18px;display:grid;grid-template-columns:1fr auto;gap:10px;
+             align-items:start;box-shadow:0 2px 6px rgba(0,18,48,.05);}
+  .note-card.done-card{opacity:.55;}
+  .note-athlete{font-weight:700;font-size:15px;color:var(--navy);}
+  .note-issue{font-size:13px;color:#444;margin-top:3px;}
+  .note-meta{font-size:11px;color:var(--gray2);margin-top:6px;display:flex;gap:12px;flex-wrap:wrap;}
+  .note-action-badge{display:inline-block;background:var(--crimson);color:#fff;font-size:10px;font-weight:700;padding:2px 9px;border-radius:20px;}
+  .note-action-badge.email{background:var(--navy);} .note-action-badge.both{background:#5a2d82;}
+  .done-btn{padding:7px 14px;border-radius:7px;border:none;cursor:pointer;font-size:12px;font-weight:700;
+            background:var(--green-bg);color:var(--green);white-space:nowrap;}
+  .done-btn.is-done{background:var(--green);color:#fff;}
+  .add-note-form{border-radius:10px;border:1.5px dashed var(--border);padding:20px;background:var(--white);}
+
+  /* ── MODALS ── */
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,18,48,.5);z-index:200;align-items:center;justify-content:center;}
+  .modal-overlay.open{display:flex;}
+  .modal{background:#fff;border-radius:14px;padding:28px 26px;width:90%;max-width:480px;box-shadow:0 24px 64px rgba(0,0,0,.3);}
+  .modal-title{font-family:"Bookman Old Style",Georgia,serif;font-size:18px;color:var(--navy);margin-bottom:18px;}
+  .modal-actions{display:flex;gap:10px;margin-top:20px;justify-content:flex-end;}
+  /* ── LEADERBOARD ── */
+  td.lb-gold { background:#fffbe6; color:#7a4500; font-weight:700; }
+  td.lb-gold::after { content:" 🥇"; font-size:11px; }
+  td.lb-val { text-align:center; font-size:13px; }
+  td.lb-metric { font-weight:700; color:var(--navy); font-family:"Bookman Old Style",Georgia,serif; }
+  tr.lb-row:hover td { background:#f7f9fc; }
+  tr.lb-row td.lb-gold { background:#fffbe6 !important; }
+
+  .flex{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+  .text-sm{font-size:12px;color:var(--gray2);}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">IRCS <span>Eagles</span></div>
+  <button class="tab-btn active" onclick="showPage('roster',this)">① Roster</button>
+  <button class="tab-btn" onclick="showPage('dress',this)">② Dress Code</button>
+  <button class="tab-btn" onclick="showPage('database',this)">③ Database</button>
+  <button class="tab-btn" onclick="showPage('dashboard',this)">④ Dashboard</button>
+  <button class="tab-btn" onclick="showPage('notes',this)">⑤ Notes</button>
+</nav>
+
+<!-- PAGE 1: ROSTER -->
+<div id="page-roster" class="page active">
+  <div class="page-title">Roster</div>
+  <div class="page-sub">Master athlete list · All other tabs reference this</div>
+  <div class="card">
+    <div class="flex" style="margin-bottom:14px;">
+      <input type="text" id="roster-search" placeholder="Search name..." oninput="renderRoster()" style="flex:1;min-width:180px;">
+      <select id="roster-period-filter" onchange="renderRoster()">
+        <option value="">All Periods</option>
+        <option>1</option><option>2</option><option>3</option><option>5</option><option>6</option><option>8</option>
+      </select>
+      <select id="roster-type-filter" onchange="renderRoster()">
+        <option value="">All Classes</option>
+        <option>Weight Training</option><option>HOPE Fitness</option>
+      </select>
+      <button class="btn btn-primary" onclick="openAddAthlete()">+ Add Athlete</button>
+    </div>
+    <div class="tbl-wrap">
+      <table><thead><tr><th>Name</th><th>Period</th><th>Class</th><th>Sport</th><th>Grad Year</th><th></th></tr></thead>
+      <tbody id="roster-body"></tbody></table>
+    </div>
+    <div class="text-sm" style="margin-top:10px;" id="roster-count"></div>
+  </div>
+</div>
+
+<!-- PAGE 2: DRESS CODE -->
+<div id="page-dress" class="page">
+  <div class="page-title">Dress Code</div>
+  <div class="page-sub">NS = No Shirt · NP = No Pants/Shorts · WP = Wore Pants · NSH = No Shoes</div>
+  <div class="card" style="padding:14px;">
+    <div class="flex" style="margin-bottom:12px;">
+      <div>
+        <label style="margin-bottom:4px;">Filter Period</label>
+        <select id="dress-period-filter" onchange="renderDressGrid()">
+          <option value="">All Periods</option>
+          <option>1</option><option>2</option><option>3</option><option>5</option><option>6</option><option>8</option>
+        </select>
+      </div>
+      <div class="text-sm" style="align-self:flex-end;">Period · Name · Tally frozen. Scroll right for dates.</div>
+    </div>
+    <div class="dress-grid-wrap" id="dress-grid-wrap"></div>
+  </div>
+</div>
+
+<!-- PAGE 3: DATABASE -->
+<div id="page-database" class="page">
+  <div class="page-title">Performance Database</div>
+  <div class="page-sub">Click any value cell to edit inline · Flying 10 MPH auto-calculates · Add a test date for a whole period at once</div>
+
+  <!-- ADD DATE BAR -->
+  <div class="add-date-bar">
+    <div>
+      <label>Period</label>
+      <select id="add-period-sel">
+        <option>1</option><option>2</option><option>3</option><option>5</option><option>6</option><option>8</option>
+      </select>
+    </div>
+    <div>
+      <label>Test Date</label>
+      <input type="date" id="add-date-input" style="width:160px;">
+    </div>
+    <button class="btn btn-primary" onclick="addPeriodDate()">+ Add Test Date for Period</button>
+    <div class="text-sm" style="color:var(--gray);align-self:flex-end;">Creates blank rows for every athlete in that period on that date</div>
+  </div>
+
+  <!-- FILTER BAR -->
+  <div class="card" style="padding:14px;">
+    <div class="flex">
+      <select id="db-period-filter" onchange="renderDB()">
+        <option value="">All Periods</option>
+        <option>1</option><option>2</option><option>3</option><option>5</option><option>6</option><option>8</option>
+      </select>
+      <input type="text" id="db-search" placeholder="Search name..." oninput="renderDB()" style="min-width:160px;flex:1;">
+      <div class="text-sm" style="align-self:center;">Click a cell to edit · Tab to next · Enter to confirm</div>
+    </div>
+  </div>
+
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr>
+        <th style="min-width:150px;">Name</th>
+        <th style="min-width:100px;">Date</th>
+        <th>BW</th>
+        <th>Fly10 sec</th>
+        <th style="background:#1a5c30;">Fly10 mph ↗</th>
+        <th>Jump (in)</th>
+        <th>RSI</th>
+        <th>Back Squat</th>
+        <th>Bench</th>
+        <th>Trap DL</th>
+        <th>Str DL</th>
+        <th>400m</th>
+        <th style="min-width:90px;"></th>
+      </tr></thead>
+      <tbody id="db-body"></tbody>
+    </table>
+  </div>
+  <div class="text-sm" style="margin-top:10px;" id="db-count"></div>
+</div>
+
+<!-- PAGE 4: DASHBOARD -->
+<div id="page-dashboard" class="page">
+  <div class="page-title">Dashboard</div>
+  <div class="page-sub">Leaderboard by period · Player card · Class view</div>
+
+  <!-- LEADERBOARD -->
+  <div class="card" style="margin-bottom:18px;">
+    <div class="card-title">🏆 Period Leaderboard — Average Per Test Date</div>
+    <div class="text-sm" style="margin-bottom:14px;color:var(--gray2);">
+      Each period's avg is the mean of its most recent test date per athlete.
+      <strong style="color:var(--crimson);">Gold</strong> = best class for that metric.
+    </div>
+    <div class="tbl-wrap">
+      <table id="leaderboard-table">
+        <thead>
+          <tr>
+            <th>Metric</th>
+            <th id="lb-hdr-1" style="text-align:center;">Period 1</th>
+            <th id="lb-hdr-2" style="text-align:center;">Period 2</th>
+            <th id="lb-hdr-8" style="text-align:center;">Period 8</th>
+          </tr>
+        </thead>
+        <tbody id="leaderboard-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card" style="padding:14px 16px;">
+    <div class="flex">
+      <div>
+        <label style="margin-bottom:4px;">View Mode</label>
+        <select id="dash-mode" onchange="toggleDashMode()">
+          <option value="athlete">Single Athlete</option>
+          <option value="class">Class Period</option>
+        </select>
+      </div>
+      <div id="dash-athlete-wrap">
+        <label style="margin-bottom:4px;">Athlete</label>
+        <select id="dash-athlete" onchange="renderDashboard()"></select>
+      </div>
+      <div id="dash-period-wrap" style="display:none;">
+        <label style="margin-bottom:4px;">Period</label>
+        <select id="dash-period" onchange="renderDashboard()">
+          <option>1</option><option>2</option><option>3</option><option>5</option><option>6</option><option>8</option>
+        </select>
+      </div>
+    </div>
+  </div>
+  <div id="dash-output"></div>
+</div>
+
+<!-- PAGE 5: NOTES -->
+<div id="page-notes" class="page">
+  <div class="page-title">Referral & Parent Notes</div>
+  <div class="page-sub">Incomplete items shown first · Mark done when sent</div>
+  <div class="add-note-form card" style="margin-bottom:20px;">
+    <div class="card-title">New Note</div>
+    <div class="field-row">
+      <div class="field"><label>Athlete</label><select id="note-athlete"><option value="">Select...</option></select></div>
+      <div class="field"><label>Date</label><input type="date" id="note-date"></div>
+      <div class="field" style="flex:2;"><label>Issue</label><input type="text" id="note-issue" placeholder="e.g. 3rd dress violation" style="width:100%;"></div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Action</label>
+        <select id="note-action">
+          <option value="referral">Referral</option>
+          <option value="email">Parent Email</option>
+          <option value="both">Both</option>
+        </select>
+      </div>
+      <div class="field" style="flex:2;"><label>Notes</label><input type="text" id="note-notes" placeholder="Optional detail..." style="width:100%;"></div>
+    </div>
+    <button class="btn btn-primary" onclick="addNote()">Add Note</button>
+  </div>
+  <div class="notes-grid" id="notes-list"></div>
+</div>
+
+<!-- MODAL: ADD ATHLETE -->
+<div class="modal-overlay" id="modal-athlete">
+  <div class="modal">
+    <div class="modal-title">Add Athlete</div>
+    <div class="field-row">
+      <div class="field" style="flex:2;"><label>Full Name (Last, First)</label><input type="text" id="new-name" placeholder="Cox, Logan" style="width:100%;"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Period</label>
+        <select id="new-period"><option>1</option><option>2</option><option>3</option><option>5</option><option>6</option><option>8</option></select>
+      </div>
+      <div class="field"><label>Class Type</label>
+        <select id="new-type"><option>Weight Training</option><option>HOPE Fitness</option></select>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Sport</label><input type="text" id="new-sport" placeholder="Football" style="width:100%;"></div>
+      <div class="field"><label>Grad Year</label><input type="number" id="new-grad" placeholder="2027" style="width:100%;"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-athlete')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveAthlete()">Save Athlete</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── DATA ─────────────────────────────────────────────────────────
+const PERIODS = ['1','2','3','5','6','8'];
+
+let athletes = [
+  {id:1,  name:"Brown, Easton",    period:"1", type:"Weight Training", sport:"Football", grad:2028},
+  {id:2,  name:"Caruso, Tyler",    period:"1", type:"Weight Training", sport:"Track",    grad:2028},
+  {id:3,  name:"Hill, Oliver",     period:"1", type:"Weight Training", sport:"Soccer",   grad:2027},
+  {id:4,  name:"Stibbard, Sheldon",period:"2", type:"Weight Training", sport:"Football", grad:2026},
+  {id:5,  name:"Stiles, Ethan",    period:"2", type:"Weight Training", sport:"Football", grad:2027},
+  {id:6,  name:"Thibeault, Ty",    period:"2", type:"Weight Training", sport:"Football", grad:2028},
+  {id:7,  name:"Taylor, Reed",     period:"3", type:"Weight Training", sport:"Football", grad:2027},
+  {id:8,  name:"Victor, Elijah",   period:"3", type:"Weight Training", sport:"Football", grad:2028},
+  {id:9,  name:"Victor, Jadyn",    period:"3", type:"Weight Training", sport:"Football", grad:2027},
+  {id:10, name:"Powers, Logan",    period:"5", type:"HOPE Fitness",    sport:"—",        grad:2028},
+  {id:11, name:"Sullivan, Liam",   period:"5", type:"HOPE Fitness",    sport:"—",        grad:2027},
+  {id:12, name:"Cox, Logan",       period:"6", type:"Weight Training", sport:"Football", grad:2027},
+  {id:13, name:"Hagood, Benjamin", period:"6", type:"Weight Training", sport:"Football", grad:2026},
+  {id:14, name:"Hingson, Isaac",   period:"6", type:"Weight Training", sport:"Football", grad:2027},
+  {id:15, name:"Martinez, Quinn",  period:"6", type:"Weight Training", sport:"Football", grad:2028},
+  {id:16, name:"Meade, Carter",    period:"8", type:"Weight Training", sport:"Soccer",   grad:2027},
+  {id:17, name:"Wodnicki, Gabriel",period:"8", type:"Weight Training", sport:"Soccer",   grad:2028},
+];
+
+// Each entry: one row = one athlete × one date
+let testEntries = [
+  {id:1,  athleteId:12, date:"2026-01-22", bw:195, fly:1.14, jump:23.6, rsi:0.52, bsq:null, bench:275, tbdl:null, sbdl:315, m400:72.0},
+  {id:2,  athleteId:12, date:"2026-03-04", bw:215, fly:1.11, jump:26.1, rsi:0.61, bsq:320,  bench:325, tbdl:455,  sbdl:455, m400:74.1},
+  {id:3,  athleteId:15, date:"2026-01-22", bw:155, fly:1.16, jump:20.9, rsi:0.55, bsq:null, bench:185, tbdl:405,  sbdl:250, m400:null},
+  {id:4,  athleteId:15, date:"2026-03-04", bw:163, fly:1.10, jump:22.3, rsi:0.58, bsq:295,  bench:205, tbdl:425,  sbdl:295, m400:73.4},
+  {id:5,  athleteId:13, date:"2026-01-22", bw:185, fly:1.25, jump:22.1, rsi:0.57, bsq:275,  bench:145, tbdl:275,  sbdl:365, m400:null},
+  {id:6,  athleteId:13, date:"2026-03-04", bw:211, fly:1.20, jump:24.0, rsi:0.62, bsq:365,  bench:215, tbdl:425,  sbdl:365, m400:null},
+  {id:7,  athleteId:14, date:"2026-01-22", bw:190, fly:1.33, jump:18.9, rsi:0.49, bsq:225,  bench:155, tbdl:315,  sbdl:225, m400:null},
+  {id:8,  athleteId:14, date:"2026-03-04", bw:220, fly:1.28, jump:21.2, rsi:0.54, bsq:335,  bench:205, tbdl:315,  sbdl:335, m400:null},
+  {id:9,  athleteId:4,  date:"2026-01-22", bw:158, fly:1.20, jump:20.5, rsi:0.51, bsq:165,  bench:135, tbdl:225,  sbdl:165, m400:76.0},
+  {id:10, athleteId:5,  date:"2026-01-22", bw:130, fly:1.17, jump:19.2, rsi:0.48, bsq:245,  bench:205, tbdl:285,  sbdl:295, m400:78.0},
+];
+
+let dressData = {
+  1:  {"2026-08-13":"NS"},
+  3:  {"2026-08-11":"NSH","2026-08-14":"NP"},
+  4:  {"2026-08-12":"WP"},
+};
+
+let notes = [
+  {id:1, athleteId:3,  date:"2026-08-14", issue:"2nd dress violation (NSH + NP)", action:"email",   notes:"",          done:false},
+  {id:2, athleteId:1,  date:"2026-08-13", issue:"No shirt 1st offense",            action:"referral", notes:"Sent 8/15", done:true},
+];
+
+let nextAthleteId = 18, nextEntryId = 11, nextNoteId = 3;
+
+// ── UTILS ────────────────────────────────────────────────────────
+const flyToMPH = sec => (!sec || isNaN(sec) || +sec <= 0) ? null : (20.4545 / +sec).toFixed(2);
+const fmtVal   = v   => (v == null || v === '') ? '—' : v;
+const getAth   = id  => athletes.find(a => a.id === id);
+const perAths  = p   => athletes.filter(a => a.period === p).sort((a,b) => a.name.localeCompare(b.name));
+const athEntries = id => testEntries.filter(e => e.athleteId === id).sort((a,b) => a.date.localeCompare(b.date));
+const DB_KEYS  = ['bw','fly','jump','rsi','bsq','bench','tbdl','sbdl','m400'];
+const DB_LABELS= ['BW','Fly10 sec','Jump','RSI','Back Sq','Bench','Trap DL','Str DL','400m'];
+
+// ── NAV ──────────────────────────────────────────────────────────
+function showPage(name, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  btn.classList.add('active');
+  if (name==='roster')    renderRoster();
+  if (name==='dress')     renderDressGrid();
+  if (name==='database')  renderDB();
+  if (name==='dashboard') { populateDashSelects(); renderDashboard(); }
+  if (name==='notes')     { populateNoteSelect(); renderNotes(); }
+}
+
+// ── PAGE 1: ROSTER ───────────────────────────────────────────────
+function renderRoster() {
+  const s = document.getElementById('roster-search').value.toLowerCase();
+  const p = document.getElementById('roster-period-filter').value;
+  const t = document.getElementById('roster-type-filter').value;
+  const list = athletes
+    .filter(a => (!s||a.name.toLowerCase().includes(s)) && (!p||a.period===p) && (!t||a.type===t))
+    .sort((a,b) => a.period.localeCompare(b.period)||a.name.localeCompare(b.name));
+  document.getElementById('roster-body').innerHTML = list.map(a=>`<tr>
+    <td><strong>${a.name}</strong></td><td>${a.period}</td>
+    <td><span class="badge ${a.type==='Weight Training'?'badge-wt':'badge-hope'}">${a.type}</span></td>
+    <td>${a.sport}</td><td>${a.grad}</td>
+    <td><button class="btn btn-ghost btn-sm" onclick="removeAthlete(${a.id})">Remove</button></td>
+  </tr>`).join('');
+  document.getElementById('roster-count').textContent = list.length+' athletes shown';
+}
+function openAddAthlete() { document.getElementById('modal-athlete').classList.add('open'); }
+function saveAthlete() {
+  const name = document.getElementById('new-name').value.trim();
+  if (!name) return alert('Name required');
+  athletes.push({ id:nextAthleteId++, name,
+    period: document.getElementById('new-period').value,
+    type:   document.getElementById('new-type').value,
+    sport:  document.getElementById('new-sport').value.trim()||'—',
+    grad:   parseInt(document.getElementById('new-grad').value)||2027 });
+  closeModal('modal-athlete');
+  renderRoster();
+  ['new-name','new-sport','new-grad'].forEach(id => document.getElementById(id).value='');
+}
+function removeAthlete(id) {
+  if (!confirm('Remove athlete?')) return;
+  athletes = athletes.filter(a => a.id!==id);
+  renderRoster();
+}
+
+// ── PAGE 2: DRESS CODE ───────────────────────────────────────────
+function buildDates() {
+  const dates=[]; let d=new Date('2026-08-11'); const end=new Date('2027-05-22');
+  while(d<=end){ if(d.getDay()&&d.getDay()!==6) dates.push(new Date(d)); d.setDate(d.getDate()+1); }
+  return dates;
+}
+function weekScore(aid, weekDates) {
+  const v = dressData[aid] || {};
+  const violations = weekDates.filter(d => v[d.toISOString().split('T')[0]]).length;
+  return Math.max(0, 100 - violations * 20);
+}
+
+function scoreColor(score) {
+  if (score === 100) return 'background:#e8f7ec;color:#1a8a38;font-weight:700;';
+  if (score >= 80)  return 'background:#fffbe6;color:#7a4500;font-weight:700;';
+  if (score >= 60)  return 'background:#fff0e0;color:#a04000;font-weight:700;';
+  return 'background:#fde8e8;color:#C8302B;font-weight:700;';
+}
+
+function renderDressGrid() {
+  const fp = document.getElementById('dress-period-filter').value;
+  const dates = buildDates();
+  const weeks=[]; let wk=[];
+  dates.forEach((d,i)=>{ wk.push(d); if(d.getDay()===5||i===dates.length-1){weeks.push([...wk]);wk=[];} });
+
+  // thead row 1: Period | Name | Tally | Wk1 (5 days + score col) | Wk2 ...
+  let thead=`<tr>
+    <th class="col-period">Per.</th>
+    <th class="col-name">Athlete</th>
+    <th class="col-tally">Tally</th>`;
+  weeks.forEach((w,wi)=>thead+=`<th class="week-hdr" colspan="${w.length+1}">Wk ${wi+1}</th>`);
+  thead+=`</tr><tr>
+    <th class="col-period"></th>
+    <th class="col-name"></th>
+    <th class="col-tally"></th>`;
+  weeks.forEach((w,wi)=>{
+    w.forEach(d=>thead+=`<th class="day-hdr">${d.getMonth()+1}/${d.getDate()}</th>`);
+    thead+=`<th class="score-hdr">Score</th>`;
+  });
+  thead+='</tr>';
+
+  // total colspan = 3 fixed + sum of (days+1) per week
+  const totalCols = 3 + weeks.reduce((s,w)=>s+w.length+1, 0);
+
+  let tbody='';
+  PERIODS.forEach(p=>{
+    if(fp&&fp!==p) return;
+    const grp=perAths(p); if(!grp.length) return;
+    tbody+=`<tr class="period-divider"><td colspan="${totalCols}">Period ${p}</td></tr>`;
+    grp.forEach(a=>{
+      const v=dressData[a.id]||{}, tally=Object.keys(v).length;
+      tbody+=`<tr><td class="col-period">${p}</td><td class="col-name">${a.name}</td>
+        <td class="col-tally">${tally||''}</td>`;
+      weeks.forEach((w,wi)=>{
+        w.forEach(d=>{
+          const ds=d.toISOString().split('T')[0], val=v[ds]||'';
+          tbody+=`<td><select class="dress-cell${val?' has-v':''}" data-aid="${a.id}" data-date="${ds}" onchange="logDress(this)">
+            <option value=""></option>
+            <option value="NS" ${val==='NS'?'selected':''}>NS</option>
+            <option value="NP" ${val==='NP'?'selected':''}>NP</option>
+            <option value="WP" ${val==='WP'?'selected':''}>WP</option>
+            <option value="NSH" ${val==='NSH'?'selected':''}>NSH</option>
+          </select></td>`;
+        });
+        // weekly score cell
+        const sc = weekScore(a.id, w);
+        tbody+=`<td class="week-score-cell" id="wsc-${a.id}-${wi}" style="${scoreColor(sc)}">${sc}</td>`;
+      });
+      tbody+='</tr>';
+    });
+  });
+
+  document.getElementById('dress-grid-wrap').innerHTML=
+    `<table class="dress-grid"><thead>${thead}</thead><tbody>${tbody}</tbody></table>`;
+}
+
+function logDress(sel) {
+  const aid=parseInt(sel.dataset.aid), date=sel.dataset.date, val=sel.value;
+  if(!dressData[aid]) dressData[aid]={};
+  if(val){dressData[aid][date]=val;sel.classList.add('has-v');}
+  else{delete dressData[aid][date];sel.classList.remove('has-v');}
+
+  // update tally
+  const t=Object.keys(dressData[aid]||{}).length;
+  const tc=sel.closest('tr').querySelector('.col-tally');
+  if(tc) tc.textContent=t||'';
+
+  // update every weekly score cell for this athlete in this row
+  const allScoreCells = sel.closest('tr').querySelectorAll('.week-score-cell');
+  allScoreCells.forEach((cell, wi) => {
+    // rebuild week dates for this week index
+    const dates = buildDates();
+    const weeks=[]; let wk=[];
+    dates.forEach((d,i)=>{ wk.push(d); if(d.getDay()===5||i===dates.length-1){weeks.push([...wk]);wk=[];} });
+    if (weeks[wi]) {
+      const sc = weekScore(aid, weeks[wi]);
+      cell.textContent = sc;
+      cell.setAttribute('style', scoreColor(sc));
+    }
+  });
+}
+
+// ── PAGE 3: DATABASE ─────────────────────────────────────────────
+
+// ADD A TEST DATE FOR A WHOLE PERIOD
+function addPeriodDate() {
+  const p    = document.getElementById('add-period-sel').value;
+  const date = document.getElementById('add-date-input').value;
+  if (!date) return alert('Pick a date first');
+  const grp  = perAths(p);
+  if (!grp.length) return alert('No athletes in that period');
+  let added = 0;
+  grp.forEach(a => {
+    const exists = testEntries.find(e => e.athleteId===a.id && e.date===date);
+    if (!exists) {
+      testEntries.push({ id:nextEntryId++, athleteId:a.id, date,
+        bw:null,fly:null,jump:null,rsi:null,bsq:null,bench:null,tbdl:null,sbdl:null,m400:null });
+      added++;
+    }
+  });
+  if (!added) alert('All athletes in Period '+p+' already have an entry for '+date);
+  // set filter to that period so user lands on the right view
+  document.getElementById('db-period-filter').value = p;
+  renderDB();
+}
+
+// RENDER DATABASE TABLE
+function renderDB() {
+  const pf = document.getElementById('db-period-filter').value;
+  const s  = (document.getElementById('db-search').value||'').toLowerCase();
+  let html='', total=0;
+
+  PERIODS.forEach(p=>{
+    if(pf && pf!==p) return;
+    const grp = perAths(p).filter(a => !s||a.name.toLowerCase().includes(s));
+    if(!grp.length) return;
+
+    // Collect all entries for this period grouped by date
+    const allEntries = grp.flatMap(a => athEntries(a.id));
+    if(!allEntries.length && s) return;
+
+    html += `<tr class="db-period-hdr"><td colspan="13">Period ${p}</td></tr>`;
+
+    if(!allEntries.length){
+      html+=`<tr><td colspan="13" style="color:var(--gray2);font-size:12px;font-style:italic;padding:10px 14px;">
+        No entries yet — use "+ Add Test Date" above</td></tr>`;
+      return;
+    }
+
+    // Get unique sorted dates across all athletes in this period
+    const dates = [...new Set(allEntries.map(e=>e.date))].sort();
+
+    dates.forEach(date=>{
+      // Date sub-header
+      html+=`<tr class="db-athlete-hdr"><td colspan="13" style="font-size:11px;letter-spacing:.5px;color:var(--gray2);padding:5px 12px;background:#f8f9fb;">
+        📅 ${date}</td></tr>`;
+
+      // All athletes for this period, in alpha order, showing their entry for this date
+      grp.forEach(a=>{
+        const e = testEntries.find(en=>en.athleteId===a.id && en.date===date);
+        if(!e) return; // athlete has no entry for this date
+        const mph = flyToMPH(e.fly);
+        total++;
+        html+=`<tr data-eid="${e.id}">
+          <td class="db-name"><strong>${a.name}</strong></td>
+          <td class="db-date">${e.date}</td>
+          ${DB_KEYS.map(k=>{
+            if(k==='fly'){
+              return `<td class="editable" data-eid="${e.id}" data-key="fly" onclick="startEdit(this)">${fmtVal(e.fly)}</td>
+                      <td class="calc" id="mph-${e.id}">${mph||'—'}</td>`;
+            }
+            return `<td class="editable" data-eid="${e.id}" data-key="${k}" onclick="startEdit(this)">${fmtVal(e[k])}</td>`;
+          }).join('')}
+          <td><button class="del-row-btn" onclick="deleteEntry(${e.id})">✕</button></td>
+        </tr>`;
+      });
+    });
+  });
+
+  document.getElementById('db-body').innerHTML = html ||
+    '<tr><td colspan="13" style="text-align:center;color:#aaa;padding:20px;">No entries — add a test date above</td></tr>';
+  document.getElementById('db-count').textContent = total+' entries';
+}
+
+// INLINE EDIT
+function startEdit(td) {
+  if (td.classList.contains('editing')) return;
+  const eid = parseInt(td.dataset.eid);
+  const key = td.dataset.key;
+  const entry = testEntries.find(e=>e.id===eid);
+  if (!entry) return;
+
+  const curVal = entry[key];
+  td.classList.add('editing');
+  td.innerHTML = `<input class="cell-input" type="number" step="0.01"
+    value="${curVal!=null?curVal:''}"
+    placeholder="${key==='fly'?'sec':key}"
+    id="ci-${eid}-${key}">
+    ${key==='fly'?`<span class="fly-mph-live" id="fly-live-${eid}"></span>`:''}`;
+
+  const inp = td.querySelector('.cell-input');
+  inp.focus(); inp.select();
+
+  if (key==='fly') {
+    inp.addEventListener('input', ()=>{
+      const mph = flyToMPH(inp.value);
+      const liveEl = document.getElementById(`fly-live-${eid}`);
+      if(liveEl) liveEl.textContent = mph ? '→ '+mph+' mph' : '';
+      // also update the adjacent mph cell live
+      const mphCell = document.getElementById(`mph-${eid}`);
+      if(mphCell) mphCell.textContent = mph||'—';
+    });
+  }
+
+  const commit = () => {
+    const rawVal = inp.value.trim();
+    const newVal = rawVal===''?null:parseFloat(rawVal);
+    entry[key] = newVal;
+    td.classList.remove('editing');
+    td.classList.add('unsaved');
+    td.dataset.dirty = '1';
+    td.textContent = newVal!=null ? newVal : '—';
+    if (key==='fly') {
+      const mph = flyToMPH(newVal);
+      const mphCell = document.getElementById(`mph-${eid}`);
+      if(mphCell){ mphCell.textContent = mph||'—'; }
+    }
+    // mark row as having unsaved changes — show save indicator
+    markRowDirty(eid);
+  };
+
+  inp.addEventListener('keydown', ev=>{
+    if (ev.key==='Enter'||ev.key==='Tab') { ev.preventDefault(); commit(); if(ev.key==='Tab') tabToNext(td); }
+    if (ev.key==='Escape') { td.classList.remove('editing'); td.textContent=curVal!=null?curVal:'—'; }
+  });
+  inp.addEventListener('blur', ()=>{ if(td.classList.contains('editing')) commit(); });
+}
+
+function tabToNext(currentTd) {
+  // find next editable td in same row, then wrap to first of next row
+  const row = currentTd.closest('tr');
+  const allEditable = Array.from(row.querySelectorAll('td.editable'));
+  const idx = allEditable.indexOf(currentTd);
+  if (idx < allEditable.length-1) {
+    allEditable[idx+1].click();
+  } else {
+    // move to next data row
+    let next = row.nextElementSibling;
+    while(next && (next.classList.contains('db-period-hdr')||next.classList.contains('db-athlete-hdr'))) next=next.nextElementSibling;
+    if(next){
+      const firstEditable = next.querySelector('td.editable');
+      if(firstEditable) firstEditable.click();
+    }
+  }
+}
+
+function markRowDirty(eid) {
+  // add a small "saved" flash when any cell in this entry changes
+  const rows = document.querySelectorAll(`tr[data-eid="${eid}"]`);
+  rows.forEach(row=>{
+    let actionCell = row.querySelector('td:last-child');
+    if(actionCell && !actionCell.querySelector('.save-flash-eid-'+eid)){
+      // already shows del btn, add flash next to it
+      const existing = actionCell.querySelector('.saved-flash');
+      if(!existing){
+        const span = document.createElement('span');
+        span.className='saved-flash save-flash-eid-'+eid;
+        span.textContent=' ✓';
+        actionCell.appendChild(span);
+        setTimeout(()=>span.remove(), 2000);
+      }
+    }
+  });
+}
+
+function deleteEntry(id){
+  if(!confirm('Delete this row?')) return;
+  testEntries = testEntries.filter(e=>e.id!==id);
+  renderDB();
+}
+
+// ── PAGE 4: QUICK LOG ────────────────────────────────────────────
+function renderQuickLog() {
+  const p = document.getElementById('ql-period').value;
+  const grp = perAths(p);
+  if(!document.getElementById('ql-date').value)
+    document.getElementById('ql-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('ql-body').innerHTML = grp.map(a=>`
+    <tr>
+      <td class="ql-name">${a.name}</td>
+      <td><input class="ql-input" type="number" step="0.01" min="0.5" max="3"
+            placeholder="sec" id="ql-sec-${a.id}" oninput="calcQLMPH(${a.id})"></td>
+      <td class="ql-mph" id="ql-mph-${a.id}">—</td>
+      <td><span class="ql-saved" id="ql-saved-${a.id}"></span></td>
+    </tr>`).join('');
+  document.getElementById('ql-status').textContent='';
+}
+function calcQLMPH(aid){
+  const sec=document.getElementById(`ql-sec-${aid}`).value;
+  const mph=flyToMPH(sec);
+  const cell=document.getElementById(`ql-mph-${aid}`);
+  cell.textContent=mph?mph+' mph':'—';
+  cell.classList.toggle('live',!!mph);
+  document.getElementById(`ql-saved-${aid}`).textContent='';
+}
+function saveAllQuickLog(){
+  const p=document.getElementById('ql-period').value;
+  const date=document.getElementById('ql-date').value;
+  if(!date) return alert('Set a date first');
+  let saved=0;
+  perAths(p).forEach(a=>{
+    const secEl=document.getElementById(`ql-sec-${a.id}`);
+    if(!secEl) return;
+    const sec=parseFloat(secEl.value);
+    if(!sec||sec<=0) return;
+    const existing=testEntries.find(e=>e.athleteId===a.id&&e.date===date);
+    if(existing){ existing.fly=sec; }
+    else{ testEntries.push({id:nextEntryId++,athleteId:a.id,date,bw:null,fly:sec,jump:null,rsi:null,bsq:null,bench:null,tbdl:null,sbdl:null,m400:null}); }
+    document.getElementById(`ql-saved-${a.id}`).textContent='✓';
+    saved++;
+  });
+  document.getElementById('ql-status').textContent=
+    saved?`${saved} athlete${saved>1?'s':''} logged`:'No times entered';
+}
+function clearQuickLog(){ renderQuickLog(); }
+
+// ── PAGE 4: LEADERBOARD ─────────────────────────────────────────
+const LB_PERIODS = ['1','2','8'];
+const LB_METRICS = [
+  {key:'bw',    label:'Body Weight (lbs)',  higherBetter:true},
+  {key:'fly',   label:'Flying 10 (mph)',    higherBetter:true, calc:e=>flyToMPH(e.fly)},
+  {key:'jump',  label:'Jump Height (in)',   higherBetter:true},
+  {key:'rsi',   label:'RSI',               higherBetter:true},
+  {key:'bsq',   label:'Back Squat (lbs)',  higherBetter:true},
+  {key:'bench', label:'Bench Press (lbs)', higherBetter:true},
+  {key:'tbdl',  label:'Trap Bar DL (lbs)', higherBetter:true},
+  {key:'sbdl',  label:'Str Bar DL (lbs)',  higherBetter:true},
+  {key:'m400',  label:'400m (sec)',         higherBetter:false},
+];
+
+function periodAvg(p, metricKey, calc) {
+  const group = perAths(p);
+  const vals = group.map(a => {
+    const entries = athEntries(a.id);
+    const last = entries[entries.length - 1];
+    if (!last) return null;
+    const v = calc ? calc(last) : last[metricKey];
+    return (v == null || v === '') ? null : parseFloat(v);
+  }).filter(v => v != null);
+  if (!vals.length) return null;
+  return (vals.reduce((s,v) => s+v, 0) / vals.length).toFixed(2);
+}
+
+function renderLeaderboard() {
+  // Update period headers with athlete count
+  LB_PERIODS.forEach(p => {
+    const hdr = document.getElementById(`lb-hdr-${p}`);
+    if (hdr) {
+      const n = perAths(p).length;
+      hdr.innerHTML = `Period ${p}<br><span style="font-size:10px;font-weight:400;opacity:.75;">${n} athletes</span>`;
+    }
+  });
+
+  const tbody = document.getElementById('leaderboard-body');
+  if (!tbody) return;
+
+  let html = '';
+  LB_METRICS.forEach(m => {
+    // compute avg for each leaderboard period
+    const avgs = LB_PERIODS.map(p => periodAvg(p, m.key, m.calc));
+
+    // find best (non-null) value
+    const nonNull = avgs.map((v,i) => v!=null ? {v:parseFloat(v),i} : null).filter(Boolean);
+    let bestIdx = null;
+    if (nonNull.length) {
+      bestIdx = nonNull.reduce((best, cur) => {
+        return (m.higherBetter ? cur.v > best.v : cur.v < best.v) ? cur : best;
+      }).i;
+    }
+
+    const cells = avgs.map((v, i) => {
+      const isGold = (i === bestIdx && v != null);
+      const display = v != null ? v : '—';
+      return `<td class="lb-val${isGold ? ' lb-gold' : ''}">${display}</td>`;
+    }).join('');
+
+    html += `<tr class="lb-row">
+      <td class="lb-metric">${m.label}</td>
+      ${cells}
+    </tr>`;
+  });
+
+  tbody.innerHTML = html;
+}
+
+
+const METRICS=[
+  {key:'bw',    label:'Body Weight (lbs)', higherBetter:true},
+  {key:'fly',   label:'Flying 10 (mph)',   higherBetter:true, calc:e=>flyToMPH(e.fly)},
+  {key:'jump',  label:'Jump Height (in)',  higherBetter:true},
+  {key:'rsi',   label:'RSI',              higherBetter:true},
+  {key:'bsq',   label:'Back Squat',       higherBetter:true},
+  {key:'bench', label:'Bench Press',      higherBetter:true},
+  {key:'tbdl',  label:'Trap Bar DL',      higherBetter:true},
+  {key:'sbdl',  label:'Str Bar DL',       higherBetter:true},
+  {key:'m400',  label:'400m (sec)',        higherBetter:false},
+];
+const getVal=(e,m)=>{ if(!e) return null; if(m.calc) return m.calc(e); const v=e[m.key]; return v==null?null:v; };
+
+function populateDashSelects(){
+  const s=[...athletes].sort((a,b)=>a.period.localeCompare(b.period)||a.name.localeCompare(b.name));
+  document.getElementById('dash-athlete').innerHTML=
+    s.map(a=>`<option value="${a.id}">P${a.period} — ${a.name}</option>`).join('');
+  renderLeaderboard();
+}
+function toggleDashMode(){
+  const m=document.getElementById('dash-mode').value;
+  document.getElementById('dash-athlete-wrap').style.display=m==='athlete'?'':'none';
+  document.getElementById('dash-period-wrap').style.display =m==='class'?'':'none';
+  renderDashboard();
+}
+function renderDashboard(){
+  const m=document.getElementById('dash-mode').value;
+  if(m==='athlete') renderAthleteCard(); else renderClassView();
+}
+function renderAthleteCard(){
+  const aid=parseInt(document.getElementById('dash-athlete').value);
+  const a=getAth(aid);
+  if(!a){document.getElementById('dash-output').innerHTML='<div class="card">No athlete selected.</div>';return;}
+  const entries=athEntries(aid);
+  const prev=entries[entries.length-2]||null, curr=entries[entries.length-1]||null;
+  const d1=prev?prev.date:'—', d2=curr?curr.date:'—';
+  const rows=METRICS.map(m=>{
+    const v1=getVal(prev,m), v2=getVal(curr,m);
+    let delta='—',dClass='delta-neu',v2cls='';
+    if(v1!=null&&v2!=null){
+      const diff=parseFloat(v2)-parseFloat(v1);
+      const better=m.higherBetter?diff>0:diff<0, worse=m.higherBetter?diff<0:diff>0;
+      delta=(diff>0?'▲ ':'▼ ')+Math.abs(diff).toFixed(2);
+      dClass=better?'delta-up':worse?'delta-dn':'delta-neu';
+      v2cls=better?'up':worse?'dn':'';
+    }
+    return `<tr><td>${m.label}</td><td>${v1!=null?v1:'—'}</td>
+      <td class="${v2cls}">${v2!=null?v2:'—'}</td>
+      <td class="${dClass}">${delta}</td></tr>`;
+  }).join('');
+  document.getElementById('dash-output').innerHTML=`
+    <div class="player-card">
+      <div class="player-left">
+        <div class="player-photo">PHOTO</div>
+        <div class="player-name">${a.name}</div>
+        <div class="player-meta">${a.sport}<br>Period ${a.period} · Class of ${a.grad}</div>
+        <div class="player-sport">${a.type}</div>
+      </div>
+      <div class="player-right">
+        <table class="stat-table">
+          <thead><tr><th>Metric</th><th>${d1}</th><th>${d2}</th><th>Δ</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+        ${!entries.length?'<p class="text-sm" style="margin-top:12px;">No test data logged yet.</p>':''}
+      </div>
+    </div>`;
+}
+function renderClassView(){
+  const p=document.getElementById('dash-period').value;
+  const grp=perAths(p);
+  if(!grp.length){document.getElementById('dash-output').innerHTML='<div class="card">No athletes in this period.</div>';return;}
+  const rows=grp.map(a=>({a,curr:athEntries(a.id).slice(-1)[0]||null}));
+  const avg=(key,calc)=>{
+    const vals=rows.map(r=>r.curr?(calc?calc(r.curr):r.curr[key]):null).filter(v=>v!=null).map(Number);
+    return vals.length?(vals.reduce((s,v)=>s+v,0)/vals.length).toFixed(1):'—';
+  };
+  const avgRow=`<tr class="class-avg-row"><td>CLASS AVG</td>
+    <td>${avg('bw')}</td><td>${avg('fly',e=>flyToMPH(e.fly))}</td>
+    <td>${avg('jump')}</td><td>${avg('rsi')}</td>
+    <td>${avg('bsq')}</td><td>${avg('bench')}</td>
+    <td>${avg('tbdl')}</td><td>${avg('sbdl')}</td><td>${avg('m400')}</td></tr>`;
+  const athRows=rows.map(({a,curr})=>{
+    const f=v=>v!=null?v:'—'; const mph=curr?flyToMPH(curr.fly):'—';
+    return `<tr><td><strong>${a.name}</strong></td>
+      <td>${curr?f(curr.bw):'—'}</td><td>${mph||'—'}</td>
+      <td>${curr?f(curr.jump):'—'}</td><td>${curr?f(curr.rsi):'—'}</td>
+      <td>${curr?f(curr.bsq):'—'}</td><td>${curr?f(curr.bench):'—'}</td>
+      <td>${curr?f(curr.tbdl):'—'}</td><td>${curr?f(curr.sbdl):'—'}</td>
+      <td>${curr?f(curr.m400):'—'}</td></tr>`;
+  }).join('');
+  document.getElementById('dash-output').innerHTML=`
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Athlete</th><th>BW</th><th>Fly10 mph</th><th>Jump</th><th>RSI</th>
+        <th>Back Sq</th><th>Bench</th><th>Trap DL</th><th>Str DL</th><th>400m</th></tr></thead>
+      <tbody>${avgRow}${athRows}</tbody>
+    </table></div>`;
+}
+
+// ── PAGE 5: NOTES ────────────────────────────────────────────────
+function populateNoteSelect(){
+  const s=[...athletes].sort((a,b)=>a.name.localeCompare(b.name));
+  document.getElementById('note-athlete').innerHTML=
+    '<option value="">Select...</option>'+s.map(a=>`<option value="${a.id}">${a.name}</option>`).join('');
+  document.getElementById('note-date').value=new Date().toISOString().split('T')[0];
+}
+function addNote(){
+  const aid=parseInt(document.getElementById('note-athlete').value);
+  const date=document.getElementById('note-date').value;
+  const issue=document.getElementById('note-issue').value.trim();
+  if(!aid||!date||!issue) return alert('Athlete, date, and issue required');
+  notes.push({id:nextNoteId++,athleteId:aid,date,issue,
+    action:document.getElementById('note-action').value,
+    notes:document.getElementById('note-notes').value.trim(),done:false});
+  ['note-issue','note-notes'].forEach(id=>document.getElementById(id).value='');
+  renderNotes();
+}
+function toggleNoteDone(id){ const n=notes.find(x=>x.id===id); if(n) n.done=!n.done; renderNotes(); }
+function renderNotes(){
+  const sorted=[...notes].sort((a,b)=>a.done-b.done||a.date.localeCompare(b.date));
+  const labels={referral:'Referral',email:'Parent Email',both:'Both'};
+  document.getElementById('notes-list').innerHTML=sorted.map(n=>{
+    const a=getAth(n.athleteId);
+    return `<div class="note-card ${n.done?'done-card':''}">
+      <div>
+        <div class="note-athlete">${a?a.name:'Unknown'}</div>
+        <div class="note-issue">${n.issue}</div>
+        <div class="note-meta">
+          <span>${n.date}</span>
+          <span class="note-action-badge ${n.action==='email'?'email':n.action==='both'?'both':''}">${labels[n.action]||n.action}</span>
+          ${n.notes?`<span>${n.notes}</span>`:''}
+        </div>
+      </div>
+      <button class="done-btn ${n.done?'is-done':''}" onclick="toggleNoteDone(${n.id})">${n.done?'✓ Done':'Mark Done'}</button>
+    </div>`;
+  }).join('')||'<div class="text-sm">No notes yet.</div>';
+}
+
+// ── MODALS ───────────────────────────────────────────────────────
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(el=>
+  el.addEventListener('click',e=>{ if(e.target===el) el.classList.remove('open'); }));
+
+// ── INIT ─────────────────────────────────────────────────────────
+document.getElementById('add-date-input').value = new Date().toISOString().split('T')[0];
+renderRoster();
+</script>
+</body>
+</html>
