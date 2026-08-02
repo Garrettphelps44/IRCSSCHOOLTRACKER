@@ -531,63 +531,78 @@
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-// ── DATA ─────────────────────────────────────────────────────────
+// ── SUPABASE ─────────────────────────────────────────────────────
+const SUPABASE_URL = 'https://rlrnvwxtdmdyjmcgsvww.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_ESlQFWdc1KRDeqPjQi8zBQ_CdZaZVAm';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
 const PERIODS = ['1','2','3','5','6','8'];
+let athletes = [];
+let testEntries = [];
+let dressData = {};
+let attendanceData = {};
+let notes = [];
 
-let athletes = [
-  {id:1,  name:"Brown, Easton",    period:"1", type:"Weight Training", sport:"Football", grad:2028},
-  {id:2,  name:"Caruso, Tyler",    period:"1", type:"Weight Training", sport:"Track",    grad:2028},
-  {id:3,  name:"Hill, Oliver",     period:"1", type:"Weight Training", sport:"Soccer",   grad:2027},
-  {id:4,  name:"Stibbard, Sheldon",period:"2", type:"Weight Training", sport:"Football", grad:2026},
-  {id:5,  name:"Stiles, Ethan",    period:"2", type:"Weight Training", sport:"Football", grad:2027},
-  {id:6,  name:"Thibeault, Ty",    period:"2", type:"Weight Training", sport:"Football", grad:2028},
-  {id:7,  name:"Taylor, Reed",     period:"3", type:"Weight Training", sport:"Football", grad:2027},
-  {id:8,  name:"Victor, Elijah",   period:"3", type:"Weight Training", sport:"Football", grad:2028},
-  {id:9,  name:"Victor, Jadyn",    period:"3", type:"Weight Training", sport:"Football", grad:2027},
-  {id:10, name:"Powers, Logan",    period:"5", type:"HOPE Fitness",    sport:"—",        grad:2028},
-  {id:11, name:"Sullivan, Liam",   period:"5", type:"HOPE Fitness",    sport:"—",        grad:2027},
-  {id:12, name:"Cox, Logan",       period:"6", type:"Weight Training", sport:"Football", grad:2027},
-  {id:13, name:"Hagood, Benjamin", period:"6", type:"Weight Training", sport:"Football", grad:2026},
-  {id:14, name:"Hingson, Isaac",   period:"6", type:"Weight Training", sport:"Football", grad:2027},
-  {id:15, name:"Martinez, Quinn",  period:"6", type:"Weight Training", sport:"Football", grad:2028},
-  {id:16, name:"Meade, Carter",    period:"8", type:"Weight Training", sport:"Soccer",   grad:2027},
-  {id:17, name:"Wodnicki, Gabriel",period:"8", type:"Weight Training", sport:"Soccer",   grad:2028},
-];
+function numOrNull(v){ if(v==null||v==='') return null; const n=parseFloat(v); return Number.isFinite(n)?n:null; }
+function mapAthlete(r){ return {id:r.id, name:r.name, period:String(r.period), type:r.type, sport:r.sport||'—', grad:r.grad}; }
+function mapEntry(r){
+  return {id:r.id, athleteId:r.athlete_id, date:r.date, bw:numOrNull(r.bw), fly:numOrNull(r.fly),
+    jump:numOrNull(r.jump), rsi:numOrNull(r.rsi), bsq:numOrNull(r.bsq), bench:numOrNull(r.bench),
+    tbdl:numOrNull(r.tbdl), sbdl:numOrNull(r.sbdl), m400:numOrNull(r.m400)};
+}
+function mapNote(r){ return {id:r.id, athleteId:r.athlete_id, date:r.date, issue:r.issue, action:r.action, notes:r.notes||'', done:!!r.done}; }
+function setStatus(msg, isErr){
+  let el=document.getElementById('db-status');
+  if(!el){
+    el=document.createElement('div');
+    el.id='db-status';
+    el.style.cssText='position:fixed;bottom:14px;right:14px;z-index:9999;background:#001230;color:#fff;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:600;box-shadow:0 4px 16px rgba(0,0,0,.25);max-width:340px;';
+    document.body.appendChild(el);
+  }
+  el.style.background=isErr?'#C8302B':'#001230';
+  el.textContent=msg;
+  clearTimeout(el._t);
+  el._t=setTimeout(()=>{ if(el.textContent===msg) el.remove(); }, isErr?8000:2500);
+}
+async function dbErr(error, fallback){
+  console.error(error);
+  const msg=(error&&error.message)||fallback||'Database error';
+  setStatus(msg, true);
+  if(/relation .* does not exist|Could not find the table/i.test(msg)){
+    alert('Supabase tables are missing.\n\nOpen supabase-schema.sql, paste it into Supabase → SQL Editor, click Run, then refresh this page.');
+  }
+}
 
-// Each entry: one row = one athlete × one date
-let testEntries = [
-  {id:1,  athleteId:12, date:"2026-01-22", bw:195, fly:1.14, jump:23.6, rsi:0.52, bsq:null, bench:275, tbdl:null, sbdl:315, m400:72.0},
-  {id:2,  athleteId:12, date:"2026-03-04", bw:215, fly:1.11, jump:26.1, rsi:0.61, bsq:320,  bench:325, tbdl:455,  sbdl:455, m400:74.1},
-  {id:3,  athleteId:15, date:"2026-01-22", bw:155, fly:1.16, jump:20.9, rsi:0.55, bsq:null, bench:185, tbdl:405,  sbdl:250, m400:null},
-  {id:4,  athleteId:15, date:"2026-03-04", bw:163, fly:1.10, jump:22.3, rsi:0.58, bsq:295,  bench:205, tbdl:425,  sbdl:295, m400:73.4},
-  {id:5,  athleteId:13, date:"2026-01-22", bw:185, fly:1.25, jump:22.1, rsi:0.57, bsq:275,  bench:145, tbdl:275,  sbdl:365, m400:null},
-  {id:6,  athleteId:13, date:"2026-03-04", bw:211, fly:1.20, jump:24.0, rsi:0.62, bsq:365,  bench:215, tbdl:425,  sbdl:365, m400:null},
-  {id:7,  athleteId:14, date:"2026-01-22", bw:190, fly:1.33, jump:18.9, rsi:0.49, bsq:225,  bench:155, tbdl:315,  sbdl:225, m400:null},
-  {id:8,  athleteId:14, date:"2026-03-04", bw:220, fly:1.28, jump:21.2, rsi:0.54, bsq:335,  bench:205, tbdl:315,  sbdl:335, m400:null},
-  {id:9,  athleteId:4,  date:"2026-01-22", bw:158, fly:1.20, jump:20.5, rsi:0.51, bsq:165,  bench:135, tbdl:225,  sbdl:165, m400:76.0},
-  {id:10, athleteId:5,  date:"2026-01-22", bw:130, fly:1.17, jump:19.2, rsi:0.48, bsq:245,  bench:205, tbdl:285,  sbdl:295, m400:78.0},
-];
+async function loadAll(){
+  setStatus('Loading from Supabase…');
+  const [aRes, eRes, dRes, attRes, nRes] = await Promise.all([
+    sb.from('athletes').select('*').order('id'),
+    sb.from('test_entries').select('*').order('date'),
+    sb.from('dress_logs').select('*'),
+    sb.from('attendance_logs').select('*'),
+    sb.from('notes').select('*').order('id'),
+  ]);
+  const firstErr = aRes.error||eRes.error||dRes.error||attRes.error||nRes.error;
+  if(firstErr){ await dbErr(firstErr, 'Failed to load data'); return false; }
 
-let dressData = {
-  1:  {"2026-08-13":"NS"},
-  3:  {"2026-08-11":"NSH","2026-08-14":"NP"},
-  4:  {"2026-08-12":"WP"},
-};
-
-// attendanceData[athleteId][dateISO] = "P" | "A" | "T" | "E"
-let attendanceData = {
-  1:  {"2026-08-11":"P","2026-08-12":"P","2026-08-13":"A","2026-08-14":"P"},
-  3:  {"2026-08-11":"T","2026-08-12":"P","2026-08-14":"E"},
-  12: {"2026-08-11":"P","2026-08-12":"P","2026-08-13":"P","2026-08-14":"P"},
-};
-
-let notes = [
-  {id:1, athleteId:3,  date:"2026-08-14", issue:"2nd dress violation (NSH + NP)", action:"email",   notes:"",          done:false},
-  {id:2, athleteId:1,  date:"2026-08-13", issue:"No shirt 1st offense",            action:"referral", notes:"Sent 8/15", done:true},
-];
-
-let nextAthleteId = 18, nextEntryId = 11, nextNoteId = 3;
+  athletes = (aRes.data||[]).map(mapAthlete);
+  testEntries = (eRes.data||[]).map(mapEntry);
+  dressData = {};
+  (dRes.data||[]).forEach(r=>{
+    if(!dressData[r.athlete_id]) dressData[r.athlete_id]={};
+    dressData[r.athlete_id][r.date]=r.code;
+  });
+  attendanceData = {};
+  (attRes.data||[]).forEach(r=>{
+    if(!attendanceData[r.athlete_id]) attendanceData[r.athlete_id]={};
+    attendanceData[r.athlete_id][r.date]=r.status;
+  });
+  notes = (nRes.data||[]).map(mapNote);
+  setStatus('Connected to Supabase');
+  return true;
+}
 
 // ── UTILS ────────────────────────────────────────────────────────
 const flyToMPH = sec => (!sec || isNaN(sec) || +sec <= 0) ? null : (20.4545 / +sec).toFixed(2);
@@ -629,26 +644,35 @@ function renderRoster() {
   document.getElementById('roster-count').textContent = list.length+' athletes shown';
 }
 function openAddAthlete() { document.getElementById('modal-athlete').classList.add('open'); }
-function saveAthlete() {
+async function saveAthlete() {
   const name = document.getElementById('new-name').value.trim();
   if (!name) return alert('Name required');
-  athletes.push({ id:nextAthleteId++, name,
+  const row = {
+    name,
     period: document.getElementById('new-period').value,
     type:   document.getElementById('new-type').value,
     sport:  document.getElementById('new-sport').value.trim()||'—',
-    grad:   parseInt(document.getElementById('new-grad').value)||2027 });
+    grad:   parseInt(document.getElementById('new-grad').value)||2027
+  };
+  const { data, error } = await sb.from('athletes').insert(row).select().single();
+  if (error) return dbErr(error, 'Failed to save athlete');
+  athletes.push(mapAthlete(data));
   closeModal('modal-athlete');
   renderRoster();
   ['new-name','new-sport','new-grad'].forEach(id => document.getElementById(id).value='');
+  setStatus('Athlete saved');
 }
-function removeAthlete(id) {
+async function removeAthlete(id) {
   if (!confirm('Remove athlete?')) return;
+  const { error } = await sb.from('athletes').delete().eq('id', id);
+  if (error) return dbErr(error, 'Failed to remove athlete');
   athletes = athletes.filter(a => a.id!==id);
   testEntries = testEntries.filter(e => e.athleteId!==id);
   notes = notes.filter(n => n.athleteId!==id);
   delete dressData[id];
   delete attendanceData[id];
   renderRoster();
+  setStatus('Athlete removed');
 }
 
 // ── PAGE 2: DRESS CODE ───────────────────────────────────────────
@@ -727,11 +751,18 @@ function renderDressGrid() {
     `<table class="dress-grid"><thead>${thead}</thead><tbody>${tbody}</tbody></table>`;
 }
 
-function logDress(sel) {
+async function logDress(sel) {
   const aid=parseInt(sel.dataset.aid), date=sel.dataset.date, val=sel.value;
   if(!dressData[aid]) dressData[aid]={};
-  if(val){dressData[aid][date]=val;sel.classList.add('has-v');}
-  else{delete dressData[aid][date];sel.classList.remove('has-v');}
+  if(val){
+    const { error } = await sb.from('dress_logs').upsert({ athlete_id:aid, date, code:val }, { onConflict:'athlete_id,date' });
+    if(error) return dbErr(error, 'Failed to save dress log');
+    dressData[aid][date]=val; sel.classList.add('has-v');
+  } else {
+    const { error } = await sb.from('dress_logs').delete().eq('athlete_id',aid).eq('date',date);
+    if(error) return dbErr(error, 'Failed to clear dress log');
+    delete dressData[aid][date]; sel.classList.remove('has-v');
+  }
 
   // update tally
   const t=Object.keys(dressData[aid]||{}).length;
@@ -821,11 +852,18 @@ function renderAttendanceGrid() {
     `<table class="dress-grid"><thead>${thead}</thead><tbody>${tbody}</tbody></table>`;
 }
 
-function logAttendance(sel) {
+async function logAttendance(sel) {
   const aid=parseInt(sel.dataset.aid), date=sel.dataset.date, val=sel.value;
   if(!attendanceData[aid]) attendanceData[aid]={};
-  if(val){attendanceData[aid][date]=val;}
-  else{delete attendanceData[aid][date];}
+  if(val){
+    const { error } = await sb.from('attendance_logs').upsert({ athlete_id:aid, date, status:val }, { onConflict:'athlete_id,date' });
+    if(error) return dbErr(error, 'Failed to save attendance');
+    attendanceData[aid][date]=val;
+  } else {
+    const { error } = await sb.from('attendance_logs').delete().eq('athlete_id',aid).eq('date',date);
+    if(error) return dbErr(error, 'Failed to clear attendance');
+    delete attendanceData[aid][date];
+  }
 
   ATT_STATUSES.forEach(s=>sel.classList.remove('att-'+s));
   if(val) sel.classList.add('att-'+val);
@@ -845,39 +883,42 @@ function logAttendance(sel) {
 }
 
 // Mark every currently-shown athlete Present on the chosen date
-function markAllPresent() {
+async function markAllPresent() {
   const date=document.getElementById('att-mark-date').value;
   if(!date) return alert('Pick a date first');
   const fp=document.getElementById('att-period-filter').value;
-  athletes.filter(a=>!fp||a.period===fp).forEach(a=>{
-    if(!attendanceData[a.id]) attendanceData[a.id]={};
-    attendanceData[a.id][date]='P';
+  const rows = athletes.filter(a=>!fp||a.period===fp).map(a=>({ athlete_id:a.id, date, status:'P' }));
+  if(!rows.length) return;
+  const { error } = await sb.from('attendance_logs').upsert(rows, { onConflict:'athlete_id,date' });
+  if(error) return dbErr(error, 'Failed to mark present');
+  rows.forEach(r=>{
+    if(!attendanceData[r.athlete_id]) attendanceData[r.athlete_id]={};
+    attendanceData[r.athlete_id][date]='P';
   });
   renderAttendanceGrid();
+  setStatus('Marked present');
 }
 
 // ── PAGE 3: DATABASE ─────────────────────────────────────────────
 
 // ADD A TEST DATE FOR A WHOLE PERIOD
-function addPeriodDate() {
+async function addPeriodDate() {
   const p    = document.getElementById('add-period-sel').value;
   const date = document.getElementById('add-date-input').value;
   if (!date) return alert('Pick a date first');
   const grp  = perAths(p);
   if (!grp.length) return alert('No athletes in that period');
-  let added = 0;
-  grp.forEach(a => {
-    const exists = testEntries.find(e => e.athleteId===a.id && e.date===date);
-    if (!exists) {
-      testEntries.push({ id:nextEntryId++, athleteId:a.id, date,
-        bw:null,fly:null,jump:null,rsi:null,bsq:null,bench:null,tbdl:null,sbdl:null,m400:null });
-      added++;
-    }
-  });
-  if (!added) alert('All athletes in Period '+p+' already have an entry for '+date);
+  const rows = grp
+    .filter(a => !testEntries.find(e => e.athleteId===a.id && e.date===date))
+    .map(a => ({ athlete_id:a.id, date }));
+  if (!rows.length) return alert('All athletes in Period '+p+' already have an entry for '+date);
+  const { data, error } = await sb.from('test_entries').insert(rows).select();
+  if (error) return dbErr(error, 'Failed to add test date');
+  (data||[]).forEach(r => testEntries.push(mapEntry(r)));
   // set filter to that period so user lands on the right view
   document.getElementById('db-period-filter').value = p;
   renderDB();
+  setStatus('Test date added');
 }
 
 // RENDER DATABASE TABLE
@@ -968,9 +1009,11 @@ function startEdit(td) {
     });
   }
 
-  const commit = () => {
+  const commit = async () => {
     const rawVal = inp.value.trim();
     const newVal = rawVal===''?null:parseFloat(rawVal);
+    const { error } = await sb.from('test_entries').update({ [key]: newVal }).eq('id', eid);
+    if (error) return dbErr(error, 'Failed to save entry');
     entry[key] = newVal;
     td.classList.remove('editing');
     td.classList.add('unsaved');
@@ -1029,10 +1072,13 @@ function markRowDirty(eid) {
   });
 }
 
-function deleteEntry(id){
+async function deleteEntry(id){
   if(!confirm('Delete this row?')) return;
+  const { error } = await sb.from('test_entries').delete().eq('id', id);
+  if (error) return dbErr(error, 'Failed to delete entry');
   testEntries = testEntries.filter(e=>e.id!==id);
   renderDB();
+  setStatus('Entry deleted');
 }
 
 // ── PAGE 4: QUICK LOG ────────────────────────────────────────────
@@ -1059,24 +1105,32 @@ function calcQLMPH(aid){
   cell.classList.toggle('live',!!mph);
   document.getElementById(`ql-saved-${aid}`).textContent='';
 }
-function saveAllQuickLog(){
+async function saveAllQuickLog(){
   const p=document.getElementById('ql-period').value;
   const date=document.getElementById('ql-date').value;
   if(!date) return alert('Set a date first');
   let saved=0;
-  perAths(p).forEach(a=>{
+  for (const a of perAths(p)){
     const secEl=document.getElementById(`ql-sec-${a.id}`);
-    if(!secEl) return;
+    if(!secEl) continue;
     const sec=parseFloat(secEl.value);
-    if(!sec||sec<=0) return;
+    if(!sec||sec<=0) continue;
     const existing=testEntries.find(e=>e.athleteId===a.id&&e.date===date);
-    if(existing){ existing.fly=sec; }
-    else{ testEntries.push({id:nextEntryId++,athleteId:a.id,date,bw:null,fly:sec,jump:null,rsi:null,bsq:null,bench:null,tbdl:null,sbdl:null,m400:null}); }
+    if(existing){
+      const { error } = await sb.from('test_entries').update({ fly:sec }).eq('id', existing.id);
+      if(error) return dbErr(error, 'Failed to save fly time');
+      existing.fly=sec;
+    } else {
+      const { data, error } = await sb.from('test_entries').insert({ athlete_id:a.id, date, fly:sec }).select().single();
+      if(error) return dbErr(error, 'Failed to save fly time');
+      testEntries.push(mapEntry(data));
+    }
     document.getElementById(`ql-saved-${a.id}`).textContent='✓';
     saved++;
-  });
+  }
   document.getElementById('ql-status').textContent=
     saved?`${saved} athlete${saved>1?'s':''} logged`:'No times entered';
+  if(saved) setStatus('Quick log saved');
 }
 function clearQuickLog(){ renderQuickLog(); }
 
@@ -1265,18 +1319,33 @@ function populateNoteSelect(){
     '<option value="">Select...</option>'+s.map(a=>`<option value="${a.id}">${a.name}</option>`).join('');
   document.getElementById('note-date').value=new Date().toISOString().split('T')[0];
 }
-function addNote(){
+async function addNote(){
   const aid=parseInt(document.getElementById('note-athlete').value);
   const date=document.getElementById('note-date').value;
   const issue=document.getElementById('note-issue').value.trim();
   if(!aid||!date||!issue) return alert('Athlete, date, and issue required');
-  notes.push({id:nextNoteId++,athleteId:aid,date,issue,
+  const row = {
+    athlete_id:aid, date, issue,
     action:document.getElementById('note-action').value,
-    notes:document.getElementById('note-notes').value.trim(),done:false});
+    notes:document.getElementById('note-notes').value.trim(),
+    done:false
+  };
+  const { data, error } = await sb.from('notes').insert(row).select().single();
+  if(error) return dbErr(error, 'Failed to add note');
+  notes.push(mapNote(data));
   ['note-issue','note-notes'].forEach(id=>document.getElementById(id).value='');
   renderNotes();
+  setStatus('Note saved');
 }
-function toggleNoteDone(id){ const n=notes.find(x=>x.id===id); if(n) n.done=!n.done; renderNotes(); }
+async function toggleNoteDone(id){
+  const n=notes.find(x=>x.id===id);
+  if(!n) return;
+  const next=!n.done;
+  const { error } = await sb.from('notes').update({ done:next }).eq('id', id);
+  if(error) return dbErr(error, 'Failed to update note');
+  n.done=next;
+  renderNotes();
+}
 function renderNotes(){
   const sorted=[...notes].sort((a,b)=>a.done-b.done||a.date.localeCompare(b.date));
   const labels={referral:'Referral',email:'Parent Email',both:'Both'};
@@ -1649,7 +1718,10 @@ document.querySelectorAll('.modal-overlay').forEach(el=>
 // ── INIT ─────────────────────────────────────────────────────────
 document.getElementById('add-date-input').value = new Date().toISOString().split('T')[0];
 document.getElementById('att-mark-date').value = new Date().toISOString().split('T')[0];
-renderRoster();
+(async function init(){
+  const ok = await loadAll();
+  if (ok) renderRoster();
+})();
 </script>
 </body>
 </html>
