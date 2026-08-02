@@ -120,6 +120,10 @@
   .dress-grid td.week-score-cell{text-align:center;font-size:13px;border-left:2px solid var(--border);min-width:54px;}
   .dress-cell{width:100%;height:32px;border:none;background:transparent;font-size:11px;font-weight:700;text-align:center;cursor:pointer;color:var(--ink);}
   .dress-cell.has-v{background:var(--red-bg);color:var(--red);}
+  .att-cell.att-P{background:#e8f7ec;color:#1a8a38;}
+  .att-cell.att-A{background:#fde8e8;color:#C8302B;}
+  .att-cell.att-T{background:#fffbe6;color:#7a4500;}
+  .att-cell.att-E{background:#eaf1fb;color:#1c5aa8;}
 
   /* ── DASHBOARD ── */
   .player-card{display:grid;grid-template-columns:220px 1fr;background:var(--navy);border-radius:14px;
@@ -196,6 +200,74 @@
 
   .flex{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
   .text-sm{font-size:12px;color:var(--gray2);}
+
+  /* ── REPORTS ── */
+  #dash-output{margin-top:20px;}
+  .rpt{background:#fff;border:1px solid var(--border);border-radius:10px;padding:28px 30px;
+       box-shadow:0 2px 8px rgba(0,18,48,.06);max-width:900px;margin:0 auto;}
+  .rpt-head{display:flex;justify-content:space-between;align-items:flex-start;
+            border-bottom:3px solid var(--crimson);padding-bottom:16px;margin-bottom:22px;}
+  .rpt-title{font-family:"Bookman Old Style",Georgia,serif;font-size:24px;color:var(--navy);}
+  .rpt-org{font-family:"Bookman Old Style",Georgia,serif;font-size:14px;color:var(--crimson);font-weight:bold;}
+  .rpt-org span{color:var(--navy);}
+  .rpt-range{font-size:12px;color:var(--gray2);margin-top:4px;}
+  .rpt-athlete-meta{font-size:13px;color:#333;line-height:1.7;text-align:right;}
+  .rpt-athlete-name{font-family:"Bookman Old Style",Georgia,serif;font-size:18px;color:var(--navy);font-weight:bold;}
+  .rpt-section{margin-bottom:26px;}
+  .rpt-section-title{font-size:12px;letter-spacing:1.2px;text-transform:uppercase;color:#fff;
+                     background:var(--navy);padding:7px 12px;border-radius:6px;font-weight:700;margin-bottom:12px;}
+  .rpt-stats{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px;}
+  .rpt-stat{flex:1;min-width:120px;background:var(--paper);border:1px solid var(--border);
+            border-radius:8px;padding:12px 14px;text-align:center;}
+  .rpt-stat .num{font-size:26px;font-weight:700;color:var(--navy);font-family:"Bookman Old Style",Georgia,serif;}
+  .rpt-stat .lbl{font-size:10px;letter-spacing:.6px;text-transform:uppercase;color:var(--gray2);margin-top:2px;}
+  .rpt-stat.warn .num{color:var(--red);}
+  .rpt-stat.good .num{color:var(--green);}
+  table.rpt-table{border-collapse:collapse;width:100%;font-size:12px;}
+  table.rpt-table th{background:var(--navy);color:#fff;padding:7px 9px;text-align:left;
+                     font-size:9.5px;letter-spacing:.4px;text-transform:uppercase;}
+  table.rpt-table td{padding:6px 9px;border-bottom:1px solid var(--border);}
+  table.rpt-table tr:nth-child(even) td{background:#f8f9fb;}
+  .rpt-empty{font-size:12px;color:var(--gray2);font-style:italic;padding:6px 2px;}
+  .rpt-foot{margin-top:24px;border-top:1px solid var(--border);padding-top:10px;
+            font-size:10px;color:var(--gray2);display:flex;justify-content:space-between;}
+  .att-pill{display:inline-block;min-width:20px;text-align:center;font-weight:700;font-size:11px;
+            padding:1px 6px;border-radius:4px;}
+  .att-pill.P{background:var(--green-bg);color:var(--green);}
+  .att-pill.A{background:var(--red-bg);color:var(--red);}
+  .att-pill.T{background:var(--yellow-bg);color:#7a4500;}
+  .att-pill.E{background:#eaf1fb;color:#1c5aa8;}
+  .dress-tally-line{display:flex;gap:16px;align-items:center;flex-wrap:wrap;}
+  .dress-type-list{display:flex;gap:10px;flex-wrap:wrap;flex:1;}
+  .dress-type-item{background:var(--paper);border:1px solid var(--border);border-radius:6px;
+                   padding:6px 12px;font-size:12px;color:#333;white-space:nowrap;}
+  .dress-type-item strong{color:var(--red);}
+  .rpt-change-note{font-size:11px;color:var(--gray2);font-style:italic;margin:12px 0 6px;}
+  td.chg-up{color:var(--green);font-weight:700;}
+  td.chg-dn{color:var(--red);font-weight:700;}
+  td.chg-neu{color:var(--gray2);}
+  #dash-output .rpt{margin-bottom:20px;}
+  .rpt-foot-wrap{padding:10px 30px;}
+
+  /* ── PRINT ── */
+  @media print {
+    nav, .no-print { display:none !important; }
+    body { background:#fff; font-size:12px; }
+    .page { display:none !important; padding:0; max-width:none; }
+    .page.active { display:block !important; }
+    /* Dashboard report printing: hide chrome, show only the report output */
+    #page-dashboard .page-title, #page-dashboard .page-sub { display:none !important; }
+    #page-dashboard > .card { display:none !important; }
+    .rpt { box-shadow:none; border:none; padding:0; max-width:none; margin-bottom:0 !important; }
+    #dash-output .rpt{margin-bottom:0 !important;}
+    /* only break BETWEEN blocks — never before the first, which would emit a blank leading page */
+    #dash-output .rpt + .rpt-athlete-block{ page-break-before:always; }
+    .rpt-foot-wrap{padding:0;}
+    .rpt-section { page-break-inside:avoid; }
+    table.rpt-table th { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    .rpt-section-title, .att-pill, .rpt-stat { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    @page { margin:14mm; }
+  }
 </style>
 </head>
 <body>
@@ -203,10 +275,11 @@
 <nav>
   <div class="nav-logo">IRCS <span>Eagles</span></div>
   <button class="tab-btn active" onclick="showPage('roster',this)">① Roster</button>
-  <button class="tab-btn" onclick="showPage('dress',this)">② Dress Code</button>
-  <button class="tab-btn" onclick="showPage('database',this)">③ Database</button>
-  <button class="tab-btn" onclick="showPage('dashboard',this)">④ Dashboard</button>
-  <button class="tab-btn" onclick="showPage('notes',this)">⑤ Notes</button>
+  <button class="tab-btn" onclick="showPage('attendance',this)">② Attendance</button>
+  <button class="tab-btn" onclick="showPage('dress',this)">③ Dress Code</button>
+  <button class="tab-btn" onclick="showPage('database',this)">④ Database</button>
+  <button class="tab-btn" onclick="showPage('dashboard',this)">⑤ Dashboard</button>
+  <button class="tab-btn" onclick="showPage('notes',this)">⑥ Notes</button>
 </nav>
 
 <!-- PAGE 1: ROSTER -->
@@ -250,6 +323,32 @@
       <div class="text-sm" style="align-self:flex-end;">Period · Name · Tally frozen. Scroll right for dates.</div>
     </div>
     <div class="dress-grid-wrap" id="dress-grid-wrap"></div>
+  </div>
+</div>
+
+<!-- PAGE: ATTENDANCE -->
+<div id="page-attendance" class="page">
+  <div class="page-title">Attendance</div>
+  <div class="page-sub">P = Present · A = Absent · T = Tardy · E = Excused · Weekly % = present days ÷ marked days</div>
+  <div class="card" style="padding:14px;">
+    <div class="flex" style="margin-bottom:12px;">
+      <div>
+        <label style="margin-bottom:4px;">Filter Period</label>
+        <select id="att-period-filter" onchange="renderAttendanceGrid()">
+          <option value="">All Periods</option>
+          <option>1</option><option>2</option><option>3</option><option>5</option><option>6</option><option>8</option>
+        </select>
+      </div>
+      <div>
+        <label style="margin-bottom:4px;">Quick Mark Present</label>
+        <div class="flex">
+          <input type="date" id="att-mark-date" style="width:150px;">
+          <button class="btn btn-primary btn-sm" onclick="markAllPresent()">Mark shown all Present</button>
+        </div>
+      </div>
+      <div class="text-sm" style="align-self:flex-end;">Period · Name · Absent tally frozen. Scroll right for dates.</div>
+    </div>
+    <div class="dress-grid-wrap" id="att-grid-wrap"></div>
   </div>
 </div>
 
@@ -312,7 +411,7 @@
 <!-- PAGE 4: DASHBOARD -->
 <div id="page-dashboard" class="page">
   <div class="page-title">Dashboard</div>
-  <div class="page-sub">Leaderboard by period · Player card · Class view</div>
+  <div class="page-sub">Leaderboard by period · Player card · Class view · Printable reports (single athlete, by period, or overall) via View Mode</div>
 
   <!-- LEADERBOARD -->
   <div class="card" style="margin-bottom:18px;">
@@ -336,13 +435,20 @@
     </div>
   </div>
 
-  <div class="card" style="padding:14px 16px;">
-    <div class="flex">
+  <div class="card no-print" id="dash-controls-card" style="padding:14px 16px;">
+    <div class="flex" style="align-items:flex-end;">
       <div>
         <label style="margin-bottom:4px;">View Mode</label>
         <select id="dash-mode" onchange="toggleDashMode()">
-          <option value="athlete">Single Athlete</option>
-          <option value="class">Class Period</option>
+          <optgroup label="Dashboard">
+            <option value="athlete">Single Athlete</option>
+            <option value="class">Class Period</option>
+          </optgroup>
+          <optgroup label="Reports (Print / PDF)">
+            <option value="report-athlete">Report — Single Athlete</option>
+            <option value="report-period">Report — By Period</option>
+            <option value="report-all">Report — All Athletes (Overall)</option>
+          </optgroup>
         </select>
       </div>
       <div id="dash-athlete-wrap">
@@ -355,7 +461,19 @@
           <option>1</option><option>2</option><option>3</option><option>5</option><option>6</option><option>8</option>
         </select>
       </div>
+      <div id="dash-report-start-wrap" style="display:none;">
+        <label style="margin-bottom:4px;">Start Date</label>
+        <input type="date" id="report-start" style="width:150px;" onchange="renderDashboard()">
+      </div>
+      <div id="dash-report-end-wrap" style="display:none;">
+        <label style="margin-bottom:4px;">End Date</label>
+        <input type="date" id="report-end" style="width:150px;" onchange="renderDashboard()">
+      </div>
+      <div id="dash-print-wrap" style="display:none;">
+        <button class="btn btn-primary" onclick="printReport()">🖨️ Print / Save PDF</button>
+      </div>
     </div>
+    <div class="text-sm" id="dash-report-hint" style="margin-top:10px;display:none;">Leave dates blank to include all recorded data. The report shows below and is what prints.</div>
   </div>
   <div id="dash-output"></div>
 </div>
@@ -457,6 +575,13 @@ let dressData = {
   4:  {"2026-08-12":"WP"},
 };
 
+// attendanceData[athleteId][dateISO] = "P" | "A" | "T" | "E"
+let attendanceData = {
+  1:  {"2026-08-11":"P","2026-08-12":"P","2026-08-13":"A","2026-08-14":"P"},
+  3:  {"2026-08-11":"T","2026-08-12":"P","2026-08-14":"E"},
+  12: {"2026-08-11":"P","2026-08-12":"P","2026-08-13":"P","2026-08-14":"P"},
+};
+
 let notes = [
   {id:1, athleteId:3,  date:"2026-08-14", issue:"2nd dress violation (NSH + NP)", action:"email",   notes:"",          done:false},
   {id:2, athleteId:1,  date:"2026-08-13", issue:"No shirt 1st offense",            action:"referral", notes:"Sent 8/15", done:true},
@@ -481,6 +606,7 @@ function showPage(name, btn) {
   btn.classList.add('active');
   if (name==='roster')    renderRoster();
   if (name==='dress')     renderDressGrid();
+  if (name==='attendance') renderAttendanceGrid();
   if (name==='database')  renderDB();
   if (name==='dashboard') { populateDashSelects(); renderDashboard(); }
   if (name==='notes')     { populateNoteSelect(); renderNotes(); }
@@ -518,6 +644,10 @@ function saveAthlete() {
 function removeAthlete(id) {
   if (!confirm('Remove athlete?')) return;
   athletes = athletes.filter(a => a.id!==id);
+  testEntries = testEntries.filter(e => e.athleteId!==id);
+  notes = notes.filter(n => n.athleteId!==id);
+  delete dressData[id];
+  delete attendanceData[id];
   renderRoster();
 }
 
@@ -621,6 +751,109 @@ function logDress(sel) {
       cell.setAttribute('style', scoreColor(sc));
     }
   });
+}
+
+// ── PAGE: ATTENDANCE ─────────────────────────────────────────────
+const ATT_STATUSES = ['P','A','T','E'];
+// present-rate: P and T count as "here", A and E do not
+function attRate(aid, weekDates) {
+  const v = attendanceData[aid] || {};
+  let marked = 0, present = 0;
+  weekDates.forEach(d => {
+    const s = v[d.toISOString().split('T')[0]];
+    if (s) { marked++; if (s === 'P' || s === 'T') present++; }
+  });
+  return marked ? Math.round(present / marked * 100) : null;
+}
+function attAbsences(aid) {
+  const v = attendanceData[aid] || {};
+  return Object.values(v).filter(s => s === 'A' || s === 'E').length;
+}
+
+function renderAttendanceGrid() {
+  const fp = document.getElementById('att-period-filter').value;
+  const dates = buildDates();
+  const weeks=[]; let wk=[];
+  dates.forEach((d,i)=>{ wk.push(d); if(d.getDay()===5||i===dates.length-1){weeks.push([...wk]);wk=[];} });
+
+  let thead=`<tr>
+    <th class="col-period">Per.</th>
+    <th class="col-name">Athlete</th>
+    <th class="col-tally">Abs.</th>`;
+  weeks.forEach((w,wi)=>thead+=`<th class="week-hdr" colspan="${w.length+1}">Wk ${wi+1}</th>`);
+  thead+=`</tr><tr>
+    <th class="col-period"></th>
+    <th class="col-name"></th>
+    <th class="col-tally"></th>`;
+  weeks.forEach((w,wi)=>{
+    w.forEach(d=>thead+=`<th class="day-hdr">${d.getMonth()+1}/${d.getDate()}</th>`);
+    thead+=`<th class="score-hdr">%</th>`;
+  });
+  thead+='</tr>';
+
+  const totalCols = 3 + weeks.reduce((s,w)=>s+w.length+1, 0);
+
+  let tbody='';
+  PERIODS.forEach(p=>{
+    if(fp&&fp!==p) return;
+    const grp=perAths(p); if(!grp.length) return;
+    tbody+=`<tr class="period-divider"><td colspan="${totalCols}">Period ${p}</td></tr>`;
+    grp.forEach(a=>{
+      const v=attendanceData[a.id]||{}, abs=attAbsences(a.id);
+      tbody+=`<tr><td class="col-period">${p}</td><td class="col-name">${a.name}</td>
+        <td class="col-tally">${abs||''}</td>`;
+      weeks.forEach((w,wi)=>{
+        w.forEach(d=>{
+          const ds=d.toISOString().split('T')[0], val=v[ds]||'';
+          tbody+=`<td><select class="dress-cell att-cell${val?' att-'+val:''}" data-aid="${a.id}" data-date="${ds}" onchange="logAttendance(this)">
+            <option value=""></option>
+            ${ATT_STATUSES.map(s=>`<option value="${s}" ${val===s?'selected':''}>${s}</option>`).join('')}
+          </select></td>`;
+        });
+        const sc = attRate(a.id, w);
+        tbody+=`<td class="week-score-cell" id="asc-${a.id}-${wi}" style="${sc==null?'color:var(--gray2);':scoreColor(sc)}">${sc==null?'—':sc}</td>`;
+      });
+      tbody+='</tr>';
+    });
+  });
+
+  document.getElementById('att-grid-wrap').innerHTML=
+    `<table class="dress-grid"><thead>${thead}</thead><tbody>${tbody}</tbody></table>`;
+}
+
+function logAttendance(sel) {
+  const aid=parseInt(sel.dataset.aid), date=sel.dataset.date, val=sel.value;
+  if(!attendanceData[aid]) attendanceData[aid]={};
+  if(val){attendanceData[aid][date]=val;}
+  else{delete attendanceData[aid][date];}
+
+  ATT_STATUSES.forEach(s=>sel.classList.remove('att-'+s));
+  if(val) sel.classList.add('att-'+val);
+
+  const tc=sel.closest('tr').querySelector('.col-tally');
+  if(tc) tc.textContent=attAbsences(aid)||'';
+
+  const dates = buildDates();
+  const weeks=[]; let wk=[];
+  dates.forEach((d,i)=>{ wk.push(d); if(d.getDay()===5||i===dates.length-1){weeks.push([...wk]);wk=[];} });
+  sel.closest('tr').querySelectorAll('.week-score-cell').forEach((cell, wi) => {
+    if (!weeks[wi]) return;
+    const sc = attRate(aid, weeks[wi]);
+    cell.textContent = sc==null?'—':sc;
+    cell.setAttribute('style', sc==null?'color:var(--gray2);':scoreColor(sc));
+  });
+}
+
+// Mark every currently-shown athlete Present on the chosen date
+function markAllPresent() {
+  const date=document.getElementById('att-mark-date').value;
+  if(!date) return alert('Pick a date first');
+  const fp=document.getElementById('att-period-filter').value;
+  athletes.filter(a=>!fp||a.period===fp).forEach(a=>{
+    if(!attendanceData[a.id]) attendanceData[a.id]={};
+    attendanceData[a.id][date]='P';
+  });
+  renderAttendanceGrid();
 }
 
 // ── PAGE 3: DATABASE ─────────────────────────────────────────────
@@ -938,13 +1171,23 @@ function populateDashSelects(){
 }
 function toggleDashMode(){
   const m=document.getElementById('dash-mode').value;
-  document.getElementById('dash-athlete-wrap').style.display=m==='athlete'?'':'none';
-  document.getElementById('dash-period-wrap').style.display =m==='class'?'':'none';
+  const isReport = m.startsWith('report-');
+  // athlete selector: dashboard single-athlete OR report single-athlete
+  document.getElementById('dash-athlete-wrap').style.display=(m==='athlete'||m==='report-athlete')?'':'none';
+  // period selector: dashboard class OR report by-period
+  document.getElementById('dash-period-wrap').style.display =(m==='class'||m==='report-period')?'':'none';
+  // report-only controls
+  document.getElementById('dash-report-start-wrap').style.display = isReport?'':'none';
+  document.getElementById('dash-report-end-wrap').style.display   = isReport?'':'none';
+  document.getElementById('dash-print-wrap').style.display        = isReport?'':'none';
+  document.getElementById('dash-report-hint').style.display       = isReport?'':'none';
   renderDashboard();
 }
 function renderDashboard(){
   const m=document.getElementById('dash-mode').value;
-  if(m==='athlete') renderAthleteCard(); else renderClassView();
+  if(m==='athlete') renderAthleteCard();
+  else if(m==='class') renderClassView();
+  else generateReport(); // report-athlete | report-period | report-all
 }
 function renderAthleteCard(){
   const aid=parseInt(document.getElementById('dash-athlete').value);
@@ -1054,6 +1297,350 @@ function renderNotes(){
   }).join('')||'<div class="text-sm">No notes yet.</div>';
 }
 
+// ── REPORTS (embedded in Dashboard View Mode) ────────────────────
+const ATT_LABELS = {P:'Present', A:'Absent', T:'Tardy', E:'Excused'};
+const DRESS_LABELS = {NS:'No Shirt', NP:'No Pants/Shorts', WP:'Wore Pants', NSH:'No Shoes'};
+
+// return true if dateISO is within [start,end]; blank bounds are open-ended
+function inRange(dateISO, start, end){
+  if (start && dateISO < start) return false;
+  if (end && dateISO > end) return false;
+  return true;
+}
+
+// Build the inner .rpt block for a single athlete
+function buildAthleteReport(a, start, end, rangeLabel){
+  const aid = a.id;
+
+  // ── ATTENDANCE ──
+  const attAll = attendanceData[aid] || {};
+  const attRows = Object.keys(attAll)
+    .filter(d=>inRange(d,start,end))
+    .sort()
+    .map(d=>({date:d, status:attAll[d]}));
+  const attCount = {P:0,A:0,T:0,E:0};
+  attRows.forEach(r=>{ if(attCount[r.status]!=null) attCount[r.status]++; });
+  const attMarked = attRows.length;
+  const attPresentRate = attMarked
+    ? Math.round(((attCount.P + attCount.T) / attMarked) * 100)
+    : null;
+
+  // ── DRESS CODE (tally only) ──
+  const dressAll = dressData[aid] || {};
+  const dressDates = Object.keys(dressAll).filter(d=>inRange(d,start,end)).sort();
+  const dressByType = {NS:0,NP:0,WP:0,NSH:0};
+  dressDates.forEach(d=>{ const t=dressAll[d]; if(dressByType[t]!=null) dressByType[t]++; });
+  const dressTotal = dressDates.length;
+
+  // ── PERFORMANCE DATABASE ──
+  const perf = athEntries(aid).filter(e=>inRange(e.date,start,end));
+
+  // ── NOTES ──
+  const noteRows = notes
+    .filter(n=>n.athleteId===aid && inRange(n.date,start,end))
+    .sort((x,y)=>x.date.localeCompare(y.date));
+
+  // dress-code tally: total + type breakdown on one line
+  const dressTypeInline = dressTotal
+    ? Object.keys(dressByType).filter(t=>dressByType[t]>0)
+        .map(t=>`<span class="dress-type-item"><strong>${dressByType[t]}×</strong> ${DRESS_LABELS[t]} (${t})</span>`).join('')
+    : '';
+  const dressTally = dressTotal
+    ? `<div class="dress-tally-line">
+        <div class="rpt-stat ${dressTotal?'warn':''}" style="max-width:150px;"><div class="num">${dressTotal}</div><div class="lbl">Total Violations</div></div>
+        <div class="dress-type-list">${dressTypeInline}</div>
+       </div>`
+    : '<div class="rpt-empty">No dress-code violations in this range.</div>';
+
+  const perfTable = perf.length
+    ? `<table class="rpt-table"><thead><tr>
+        <th>Date</th><th>BW</th><th>Fly10 s</th><th>Fly10 mph</th><th>Jump in</th><th>RSI</th>
+        <th>Back Sq</th><th>Bench</th><th>Trap DL</th><th>Str DL</th><th>400m</th>
+       </tr></thead><tbody>
+        ${perf.map(e=>`<tr>
+          <td>${e.date}</td><td>${fmtVal(e.bw)}</td><td>${fmtVal(e.fly)}</td>
+          <td>${flyToMPH(e.fly)||'—'}</td><td>${fmtVal(e.jump)}</td><td>${fmtVal(e.rsi)}</td>
+          <td>${fmtVal(e.bsq)}</td><td>${fmtVal(e.bench)}</td><td>${fmtVal(e.tbdl)}</td>
+          <td>${fmtVal(e.sbdl)}</td><td>${fmtVal(e.m400)}</td>
+        </tr>`).join('')}
+       </tbody></table>`
+    : '<div class="rpt-empty">No performance entries in this range.</div>';
+
+  // change since previous test (compare most recent two entries in range)
+  const curr = perf[perf.length-1] || null;
+  const prev = perf[perf.length-2] || null;
+  // one column definition covering every perf-table column (in order)
+  const changeCol = (v1, v2, higherBetter) => {
+    if (v1==null || v2==null) return '<td>—</td>';
+    const a=parseFloat(v1), b=parseFloat(v2), d=b-a;
+    if (d===0) return '<td class="chg-neu">no change</td>';
+    const good = higherBetter==null ? null : (higherBetter ? d>0 : d<0);
+    const cls = good==null ? 'chg-neu' : (good ? 'chg-up' : 'chg-dn');
+    return `<td class="${cls}">${d>0?'▲':'▼'} ${Math.abs(d).toFixed(2)}</td>`;
+  };
+  let perfChange = '';
+  if (curr && prev){
+    const cells =
+      changeCol(prev.bw, curr.bw, null) +                         // BW: no better/worse direction
+      changeCol(prev.fly, curr.fly, false) +                      // Fly sec: lower is better
+      changeCol(flyToMPH(prev.fly), flyToMPH(curr.fly), true) +   // Fly mph: higher is better
+      changeCol(prev.jump, curr.jump, true) +
+      changeCol(prev.rsi, curr.rsi, true) +
+      changeCol(prev.bsq, curr.bsq, true) +
+      changeCol(prev.bench, curr.bench, true) +
+      changeCol(prev.tbdl, curr.tbdl, true) +
+      changeCol(prev.sbdl, curr.sbdl, true) +
+      changeCol(prev.m400, curr.m400, false);                     // 400m: lower is better
+    perfChange = `
+      <div class="rpt-change-note">Change from ${prev.date} → ${curr.date} (increase / decrease vs. previous test)</div>
+      <table class="rpt-table"><thead><tr>
+        <th>&nbsp;</th><th>BW</th><th>Fly10 s</th><th>Fly10 mph</th><th>Jump in</th><th>RSI</th>
+        <th>Back Sq</th><th>Bench</th><th>Trap DL</th><th>Str DL</th><th>400m</th>
+      </tr></thead><tbody>
+        <tr><td style="font-weight:700;">Change</td>${cells}</tr>
+      </tbody></table>`;
+  } else if (curr && !prev){
+    perfChange = `<div class="rpt-change-note">Only one test date in range — no prior test to compare against.</div>`;
+  }
+
+  // notes table
+  const noteLabels = {referral:'Referral', email:'Parent Email', both:'Both'};
+  const notesTable = noteRows.length
+    ? `<table class="rpt-table"><thead><tr><th>Date</th><th>Issue</th><th>Action</th><th>Status</th><th>Notes</th></tr></thead><tbody>
+        ${noteRows.map(n=>`<tr>
+          <td>${n.date}</td><td>${n.issue}</td><td>${noteLabels[n.action]||n.action}</td>
+          <td>${n.done?'Done':'Open'}</td><td>${n.notes||'—'}</td>
+        </tr>`).join('')}
+       </tbody></table>`
+    : '<div class="rpt-empty">No notes in this range.</div>';
+
+  return `
+    <div class="rpt rpt-athlete-block">
+      <div class="rpt-head">
+        <div>
+          <div class="rpt-org">IRCS <span>Eagles</span></div>
+          <div class="rpt-title">Athlete Report</div>
+          <div class="rpt-range">Date Range: ${rangeLabel}</div>
+        </div>
+        <div class="rpt-athlete-meta">
+          <div class="rpt-athlete-name">${a.name}</div>
+          Period ${a.period} · ${a.type}<br>
+          Sport: ${a.sport} · Class of ${a.grad}
+        </div>
+      </div>
+
+      <div class="rpt-section">
+        <div class="rpt-section-title">Attendance Summary</div>
+        <div class="rpt-stats">
+          <div class="rpt-stat good"><div class="num">${attCount.P}</div><div class="lbl">Present</div></div>
+          <div class="rpt-stat warn"><div class="num">${attCount.A}</div><div class="lbl">Absent</div></div>
+          <div class="rpt-stat"><div class="num">${attCount.T}</div><div class="lbl">Tardy</div></div>
+          <div class="rpt-stat"><div class="num">${attCount.E}</div><div class="lbl">Excused</div></div>
+          <div class="rpt-stat"><div class="num">${attPresentRate==null?'—':attPresentRate+'%'}</div><div class="lbl">Present Rate</div></div>
+        </div>
+      </div>
+
+      <div class="rpt-section">
+        <div class="rpt-section-title">Dress-Code Violations (Tally)</div>
+        ${dressTally}
+      </div>
+
+      <div class="rpt-section">
+        <div class="rpt-section-title">Performance Data</div>
+        <div class="tbl-wrap">${perfTable}</div>
+        ${perfChange}
+      </div>
+
+      <div class="rpt-section">
+        <div class="rpt-section-title">Referral & Parent Notes</div>
+        ${notesTable}
+      </div>
+    </div>`;
+}
+
+// Build a combined summary of an entire group (period or all athletes)
+function buildGroupSummary(list, start, end, rangeLabel, title){
+  // ── aggregate attendance ──
+  const att = {P:0,A:0,T:0,E:0};
+  // ── aggregate dress ──
+  const dress = {NS:0,NP:0,WP:0,NSH:0};
+  let totalTests = 0, athletesWithViolations = 0, totalNotes = 0, openNotes = 0;
+
+  // per-athlete roll-up rows + running sums for performance averages
+  const perfSum = {bw:0,flymph:0,jump:0,rsi:0,bsq:0,bench:0,tbdl:0,sbdl:0,m400:0};
+  const perfCnt = {bw:0,flymph:0,jump:0,rsi:0,bsq:0,bench:0,tbdl:0,sbdl:0,m400:0};
+  const addPerf = (k,v)=>{ if(v!=null && v!=='' && !isNaN(v)){ perfSum[k]+=parseFloat(v); perfCnt[k]++; } };
+
+  const rows = list.map(a=>{
+    const aid = a.id;
+    // attendance
+    const av = attendanceData[aid] || {};
+    const ac = {P:0,A:0,T:0,E:0};
+    Object.keys(av).filter(d=>inRange(d,start,end)).forEach(d=>{ if(ac[av[d]]!=null){ac[av[d]]++; att[av[d]]++;} });
+    const marked = ac.P+ac.A+ac.T+ac.E;
+    const rate = marked ? Math.round(((ac.P+ac.T)/marked)*100) : null;
+    // dress
+    const dv = dressData[aid] || {};
+    const dd = Object.keys(dv).filter(d=>inRange(d,start,end));
+    dd.forEach(d=>{ if(dress[dv[d]]!=null){dress[dv[d]]++;} });
+    if (dd.length) athletesWithViolations++;
+    // performance (latest test in range for averages)
+    const perf = athEntries(aid).filter(e=>inRange(e.date,start,end));
+    totalTests += perf.length;
+    const last = perf[perf.length-1] || null;
+    if (last){
+      addPerf('bw',last.bw); addPerf('flymph',flyToMPH(last.fly)); addPerf('jump',last.jump);
+      addPerf('rsi',last.rsi); addPerf('bsq',last.bsq); addPerf('bench',last.bench);
+      addPerf('tbdl',last.tbdl); addPerf('sbdl',last.sbdl); addPerf('m400',last.m400);
+    }
+    // notes
+    const nn = notes.filter(n=>n.athleteId===aid && inRange(n.date,start,end));
+    totalNotes += nn.length; openNotes += nn.filter(n=>!n.done).length;
+
+    return `<tr>
+      <td style="text-align:left;font-weight:700;">${a.name}</td>
+      <td>P${a.period}</td>
+      <td class="chg-up">${ac.P}</td>
+      <td class="${ac.A?'chg-dn':''}">${ac.A}</td>
+      <td>${ac.T}</td><td>${ac.E}</td>
+      <td>${rate==null?'—':rate+'%'}</td>
+      <td class="${dd.length?'chg-dn':''}">${dd.length}</td>
+      <td>${perf.length}</td>
+      <td>${last?last.date:'—'}</td>
+    </tr>`;
+  }).join('');
+
+  const attMarked = att.P+att.A+att.T+att.E;
+  const groupRate = attMarked ? Math.round(((att.P+att.T)/attMarked)*100) : null;
+  const dressTotal = dress.NS+dress.NP+dress.WP+dress.NSH;
+
+  const avg = k => perfCnt[k] ? (perfSum[k]/perfCnt[k]).toFixed(2) : '—';
+
+  const dressInline = dressTotal
+    ? Object.keys(dress).filter(t=>dress[t]>0)
+        .map(t=>`<span class="dress-type-item"><strong>${dress[t]}×</strong> ${DRESS_LABELS[t]} (${t})</span>`).join('')
+    : '<span class="rpt-empty">No violations in this range.</span>';
+
+  return `
+    <div class="rpt rpt-summary-block">
+      <div class="rpt-head">
+        <div>
+          <div class="rpt-org">IRCS <span>Eagles</span></div>
+          <div class="rpt-title">${title}</div>
+          <div class="rpt-range">Date Range: ${rangeLabel}</div>
+        </div>
+        <div class="rpt-athlete-meta"><div class="rpt-athlete-name">${list.length} Athletes</div></div>
+      </div>
+
+      <div class="rpt-section">
+        <div class="rpt-section-title">Group Attendance Totals</div>
+        <div class="rpt-stats">
+          <div class="rpt-stat good"><div class="num">${att.P}</div><div class="lbl">Present</div></div>
+          <div class="rpt-stat warn"><div class="num">${att.A}</div><div class="lbl">Absent</div></div>
+          <div class="rpt-stat"><div class="num">${att.T}</div><div class="lbl">Tardy</div></div>
+          <div class="rpt-stat"><div class="num">${att.E}</div><div class="lbl">Excused</div></div>
+          <div class="rpt-stat"><div class="num">${groupRate==null?'—':groupRate+'%'}</div><div class="lbl">Group Present Rate</div></div>
+        </div>
+      </div>
+
+      <div class="rpt-section">
+        <div class="rpt-section-title">Group Dress-Code Violations</div>
+        <div class="dress-tally-line">
+          <div class="rpt-stat ${dressTotal?'warn':''}" style="max-width:150px;"><div class="num">${dressTotal}</div><div class="lbl">Total Violations</div></div>
+          <div class="rpt-stat" style="max-width:150px;"><div class="num">${athletesWithViolations}</div><div class="lbl">Athletes w/ Violations</div></div>
+          <div class="dress-type-list">${dressInline}</div>
+        </div>
+      </div>
+
+      <div class="rpt-section">
+        <div class="rpt-section-title">Group Performance Averages (most recent test per athlete)</div>
+        <div class="tbl-wrap"><table class="rpt-table"><thead><tr>
+          <th>&nbsp;</th><th>BW</th><th>Fly10 mph</th><th>Jump in</th><th>RSI</th>
+          <th>Back Sq</th><th>Bench</th><th>Trap DL</th><th>Str DL</th><th>400m</th>
+        </tr></thead><tbody>
+          <tr><td style="font-weight:700;">Group Avg</td>
+            <td>${avg('bw')}</td><td>${avg('flymph')}</td><td>${avg('jump')}</td><td>${avg('rsi')}</td>
+            <td>${avg('bsq')}</td><td>${avg('bench')}</td><td>${avg('tbdl')}</td><td>${avg('sbdl')}</td><td>${avg('m400')}</td>
+          </tr>
+        </tbody></table></div>
+        <div class="text-sm" style="margin-top:6px;">Based on ${totalTests} total test entr${totalTests===1?'y':'ies'} in range · ${totalNotes} note${totalNotes===1?'':'s'} (${openNotes} open)</div>
+      </div>
+
+      <div class="rpt-section">
+        <div class="rpt-section-title">Per-Athlete Roll-Up</div>
+        <div class="tbl-wrap"><table class="rpt-table"><thead><tr>
+          <th>Athlete</th><th>Per.</th><th>Present</th><th>Absent</th><th>Tardy</th><th>Excused</th>
+          <th>Present %</th><th>Violations</th><th># Tests</th><th>Latest Test</th>
+        </tr></thead><tbody>${rows}</tbody></table></div>
+      </div>
+    </div>`;
+}
+
+function generateReport(){
+  const out  = document.getElementById('dash-output');
+  // mode comes from the dashboard View Mode selector: report-athlete | report-period | report-all
+  const mode = document.getElementById('dash-mode').value;
+  const type = mode==='report-period' ? 'period' : mode==='report-all' ? 'all' : 'athlete';
+  const start = document.getElementById('report-start').value;
+  const end   = document.getElementById('report-end').value;
+  if (start && end && start > end){ alert('Start date must be on or before end date'); return; }
+
+  const rangeLabel = (start||end)
+    ? `${start||'beginning'} → ${end||'present'}`
+    : 'All recorded data';
+
+  // decide which athletes to include + a cover subtitle
+  let list, scopeLabel;
+  if (type==='athlete'){
+    const a = getAth(parseInt(document.getElementById('dash-athlete').value));
+    if (!a){ out.innerHTML = '<div class="card">Select an athlete first.</div>'; return; }
+    list = [a];
+    scopeLabel = null; // single athlete needs no cover
+  } else if (type==='period'){
+    const p = document.getElementById('dash-period').value;
+    list = perAths(p);
+    if (!list.length){ out.innerHTML = '<div class="card">No athletes in Period '+p+'.</div>'; return; }
+    scopeLabel = `Period ${p} — ${list.length} athlete${list.length>1?'s':''}`;
+  } else { // all
+    list = [...athletes].sort((a,b)=>a.period.localeCompare(b.period)||a.name.localeCompare(b.name));
+    if (!list.length){ out.innerHTML = '<div class="card">No athletes on the roster.</div>'; return; }
+    scopeLabel = `All Athletes — ${list.length} total`;
+  }
+
+  const printedOn = new Date().toLocaleString();
+  void scopeLabel;
+
+  // combined group summary (period / overall only) — this is the first page for group reports
+  let summary = '';
+  if (type==='period'){
+    const p = document.getElementById('dash-period').value;
+    summary = buildGroupSummary(list, start, end, rangeLabel, `Period ${p} — Group Summary`);
+  } else if (type==='all'){
+    summary = buildGroupSummary(list, start, end, rangeLabel, 'All Athletes — Overall Summary');
+  }
+
+  const body = list.map(a=>buildAthleteReport(a, start, end, rangeLabel)).join('');
+
+  out.innerHTML = `<div id="rpt-doc">
+    ${summary}
+    ${body}
+    <div class="rpt rpt-foot-wrap">
+      <div class="rpt-foot">
+        <span>IRCS Eagles Athlete Tracker</span>
+        <span>Generated ${printedOn}</span>
+      </div>
+    </div>
+  </div>`;
+}
+
+function printReport(){
+  if (!document.getElementById('rpt-doc')){
+    generateReport();
+    if (!document.getElementById('rpt-doc')) return;
+  }
+  window.print();
+}
+
 // ── MODALS ───────────────────────────────────────────────────────
 function closeModal(id){ document.getElementById(id).classList.remove('open'); }
 document.querySelectorAll('.modal-overlay').forEach(el=>
@@ -1061,6 +1648,7 @@ document.querySelectorAll('.modal-overlay').forEach(el=>
 
 // ── INIT ─────────────────────────────────────────────────────────
 document.getElementById('add-date-input').value = new Date().toISOString().split('T')[0];
+document.getElementById('att-mark-date').value = new Date().toISOString().split('T')[0];
 renderRoster();
 </script>
 </body>
