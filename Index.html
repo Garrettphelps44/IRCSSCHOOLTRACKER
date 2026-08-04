@@ -13,13 +13,15 @@
   *{box-sizing:border-box;margin:0;padding:0;}
   body{font-family:Arial,Helvetica,sans-serif;background:var(--paper);color:var(--ink);font-size:14px;}
 
-  nav{background:var(--navy);display:flex;align-items:center;padding:0 20px;height:56px;gap:4px;
-      position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.35);}
+  nav{background:var(--navy);display:flex;align-items:center;padding:0 14px;height:56px;gap:4px;
+      position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.35);
+      overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+  nav::-webkit-scrollbar{display:none;}
   .nav-logo{font-family:"Bookman Old Style",Georgia,serif;color:#fff;font-size:17px;font-weight:bold;
-            margin-right:20px;padding-right:20px;border-right:1px solid rgba(255,255,255,.2);white-space:nowrap;}
+            margin-right:16px;padding-right:16px;border-right:1px solid rgba(255,255,255,.2);white-space:nowrap;flex-shrink:0;}
   .nav-logo span{color:var(--crimson);}
   .tab-btn{background:none;border:none;color:var(--gray);padding:8px 14px;border-radius:6px;cursor:pointer;
-           font-size:13px;font-weight:600;transition:background .15s,color .15s;white-space:nowrap;}
+           font-size:13px;font-weight:600;transition:background .15s,color .15s;white-space:nowrap;flex-shrink:0;}
   .tab-btn:hover{background:rgba(255,255,255,.08);color:#fff;}
   .tab-btn.active{background:var(--crimson);color:#fff;}
 
@@ -249,6 +251,71 @@
   #dash-output .rpt{margin-bottom:20px;}
   .rpt-foot-wrap{padding:10px 30px;}
 
+  /* ── MOBILE WEEKLY VIEW (Dress + Attendance) ── */
+  .mobile-filters{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px;}
+  .mobile-filters .fi{display:flex;flex-direction:column;gap:4px;}
+  .mobile-filters .fi.grow{flex:1;min-width:150px;}
+  .mobile-filters label{margin-bottom:0;}
+  .mobile-filters select,.mobile-filters input[type="text"]{min-height:44px;font-size:15px;width:100%;}
+
+  .week-nav{display:flex;align-items:center;gap:8px;margin:4px 0 14px;}
+  .week-nav select{flex:1;text-align:center;text-align-last:center;font-weight:700;min-height:46px;font-size:15px;}
+  .week-arrow{background:var(--navy);color:#fff;border:none;border-radius:10px;min-width:48px;min-height:46px;
+              font-size:20px;line-height:1;cursor:pointer;flex-shrink:0;}
+  .week-arrow:active{opacity:.7;}
+  .week-arrow:disabled{opacity:.28;cursor:default;}
+
+  .week-cards{display:grid;gap:12px;}
+  .wk-period-label{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#fff;background:var(--navy);
+                   padding:6px 12px;border-radius:7px;font-weight:700;margin-top:6px;}
+  .wk-card{border:1px solid var(--border);border-radius:12px;padding:12px 12px 14px;background:#fff;
+           box-shadow:0 2px 6px rgba(0,18,48,.05);}
+  .wk-card-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;}
+  .wk-card-name{font-weight:700;color:var(--navy);font-size:16px;line-height:1.2;}
+  .wk-card-meta{font-size:11px;color:var(--gray2);margin-top:2px;}
+  .wk-score{font-size:14px;font-weight:800;padding:5px 12px;border-radius:20px;white-space:nowrap;text-align:center;min-width:46px;}
+  .day-row{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;}
+  .day-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+           border:1.5px solid var(--border);border-radius:10px;padding:8px 2px;background:#fafbfc;
+           cursor:pointer;min-height:62px;font-family:inherit;-webkit-tap-highlight-color:transparent;}
+  .day-btn:active{transform:scale(.95);}
+  .day-name{font-size:10px;font-weight:700;color:var(--gray2);text-transform:uppercase;letter-spacing:.3px;}
+  .day-date{font-size:10px;color:var(--gray2);}
+  .day-val{font-size:16px;font-weight:800;margin-top:3px;min-height:19px;color:var(--gray2);}
+  /* dress violation states */
+  .day-btn.dv-NS,.day-btn.dv-NP,.day-btn.dv-WP,.day-btn.dv-NSH{background:var(--red-bg);border-color:#f0b3b3;}
+  .day-btn.dv-NS .day-val,.day-btn.dv-NP .day-val,.day-btn.dv-WP .day-val,.day-btn.dv-NSH .day-val{color:var(--red);}
+  /* attendance states */
+  .day-btn.av-P{background:var(--green-bg);border-color:#a9e3ba;} .day-btn.av-P .day-val{color:var(--green);}
+  .day-btn.av-A{background:var(--red-bg);border-color:#f0b3b3;} .day-btn.av-A .day-val{color:var(--red);}
+  .day-btn.av-T{background:var(--yellow-bg);border-color:#efd98c;} .day-btn.av-T .day-val{color:#7a4500;}
+  .day-btn.av-E{background:#eaf1fb;border-color:#bcd3f2;} .day-btn.av-E .day-val{color:#1c5aa8;}
+  .tap-hint{font-size:11.5px;color:var(--gray2);margin-bottom:10px;}
+
+  /* ── GENERAL PHONE RESPONSIVENESS ── */
+  @media (max-width:640px){
+    body{font-size:15px;}
+    .page{padding:16px 12px 60px;}
+    .page-title{font-size:20px;}
+    .page-sub{font-size:12px;margin-bottom:16px;}
+    .card{padding:14px;border-radius:12px;}
+    .field-row{gap:10px;}
+    .field-row .field{min-width:100%;}
+    select,input[type="text"],input[type="date"],input[type="number"]{font-size:16px;min-height:44px;}
+    .btn{padding:10px 16px;font-size:14px;}
+    .btn-sm{padding:8px 12px;font-size:13px;}
+    .tbl-wrap{-webkit-overflow-scrolling:touch;}
+    .add-date-bar{padding:12px;}
+    .add-date-bar input[type="date"]{width:100%!important;}
+    /* dashboard player card stacks */
+    .player-card{grid-template-columns:1fr;}
+    .player-left{border-right:none;border-bottom:1px solid rgba(255,255,255,.08);}
+    .player-photo{width:120px;height:136px;}
+    .modal{padding:22px 18px;}
+    .note-card{grid-template-columns:1fr;}
+    .done-btn{justify-self:start;}
+  }
+
   /* ── PRINT ── */
   @media print {
     nav, .no-print { display:none !important; }
@@ -291,7 +358,7 @@
       <input type="text" id="roster-search" placeholder="Search name..." oninput="renderRoster()" style="flex:1;min-width:180px;">
       <select id="roster-period-filter" onchange="renderRoster()">
         <option value="">All Periods</option>
-        <option>1</option><option>2</option><option>3</option><option>5</option><option>6</option><option>8</option>
+        <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option>
       </select>
       <select id="roster-type-filter" onchange="renderRoster()">
         <option value="">All Classes</option>
@@ -300,7 +367,7 @@
       <button class="btn btn-primary" onclick="openAddAthlete()">+ Add Athlete</button>
     </div>
     <div class="tbl-wrap">
-      <table><thead><tr><th>Name</th><th>Period</th><th>Class</th><th>Sport</th><th>Grad Year</th><th></th></tr></thead>
+      <table><thead><tr><th>Name</th><th>Period</th><th>Class</th><th></th></tr></thead>
       <tbody id="roster-body"></tbody></table>
     </div>
     <div class="text-sm" style="margin-top:10px;" id="roster-count"></div>
@@ -311,18 +378,27 @@
 <div id="page-dress" class="page">
   <div class="page-title">Dress Code</div>
   <div class="page-sub">NS = No Shirt · NP = No Pants/Shorts · WP = Wore Pants · NSH = No Shoes</div>
-  <div class="card" style="padding:14px;">
-    <div class="flex" style="margin-bottom:12px;">
-      <div>
-        <label style="margin-bottom:4px;">Filter Period</label>
-        <select id="dress-period-filter" onchange="renderDressGrid()">
+  <div class="card">
+    <div class="mobile-filters">
+      <div class="fi">
+        <label>Period</label>
+        <select id="dress-period-filter" onchange="renderDress()">
           <option value="">All Periods</option>
-          <option>1</option><option>2</option><option>3</option><option>5</option><option>6</option><option>8</option>
+          <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option>
         </select>
       </div>
-      <div class="text-sm" style="align-self:flex-end;">Period · Name · Tally frozen. Scroll right for dates.</div>
+      <div class="fi grow">
+        <label>Search Student</label>
+        <input type="text" id="dress-search" placeholder="Type a name..." oninput="renderDress()">
+      </div>
     </div>
-    <div class="dress-grid-wrap" id="dress-grid-wrap"></div>
+    <div class="week-nav">
+      <button class="week-arrow" id="dress-prev" onclick="dressWeek(-1)">◀</button>
+      <select id="dress-week-sel" onchange="dressWeekPick()"></select>
+      <button class="week-arrow" id="dress-next" onclick="dressWeek(1)">▶</button>
+    </div>
+    <div class="tap-hint">Tap a day to mark: empty → NS → NP → WP → NSH → empty. Score = 100 − 20 per violation that week.</div>
+    <div class="week-cards" id="dress-list"></div>
   </div>
 </div>
 
@@ -330,25 +406,30 @@
 <div id="page-attendance" class="page">
   <div class="page-title">Attendance</div>
   <div class="page-sub">P = Present · A = Absent · T = Tardy · E = Excused · Weekly % = present days ÷ marked days</div>
-  <div class="card" style="padding:14px;">
-    <div class="flex" style="margin-bottom:12px;">
-      <div>
-        <label style="margin-bottom:4px;">Filter Period</label>
-        <select id="att-period-filter" onchange="renderAttendanceGrid()">
+  <div class="card">
+    <div class="mobile-filters">
+      <div class="fi">
+        <label>Period</label>
+        <select id="att-period-filter" onchange="renderAttendance()">
           <option value="">All Periods</option>
-          <option>1</option><option>2</option><option>3</option><option>5</option><option>6</option><option>8</option>
+          <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option>
         </select>
       </div>
-      <div>
-        <label style="margin-bottom:4px;">Quick Mark Present</label>
-        <div class="flex">
-          <input type="date" id="att-mark-date" style="width:150px;">
-          <button class="btn btn-primary btn-sm" onclick="markAllPresent()">Mark shown all Present</button>
-        </div>
+      <div class="fi grow">
+        <label>Search Student</label>
+        <input type="text" id="att-search" placeholder="Type a name..." oninput="renderAttendance()">
       </div>
-      <div class="text-sm" style="align-self:flex-end;">Period · Name · Absent tally frozen. Scroll right for dates.</div>
     </div>
-    <div class="dress-grid-wrap" id="att-grid-wrap"></div>
+    <div class="week-nav">
+      <button class="week-arrow" id="att-prev" onclick="attWeek(-1)">◀</button>
+      <select id="att-week-sel" onchange="attWeekPick()"></select>
+      <button class="week-arrow" id="att-next" onclick="attWeek(1)">▶</button>
+    </div>
+    <div class="flex" style="margin-bottom:10px;">
+      <button class="btn btn-primary btn-sm" onclick="markWeekPresent()">✓ Mark shown Present (empty days this week)</button>
+    </div>
+    <div class="tap-hint">Tap a day to mark: empty → P → A → T → E → empty.</div>
+    <div class="week-cards" id="att-list"></div>
   </div>
 </div>
 
@@ -362,7 +443,7 @@
     <div>
       <label>Period</label>
       <select id="add-period-sel">
-        <option>1</option><option>2</option><option>3</option><option>5</option><option>6</option><option>8</option>
+        <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option>
       </select>
     </div>
     <div>
@@ -378,7 +459,7 @@
     <div class="flex">
       <select id="db-period-filter" onchange="renderDB()">
         <option value="">All Periods</option>
-        <option>1</option><option>2</option><option>3</option><option>5</option><option>6</option><option>8</option>
+        <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option>
       </select>
       <input type="text" id="db-search" placeholder="Search name..." oninput="renderDB()" style="min-width:160px;flex:1;">
       <div class="text-sm" style="align-self:center;">Click a cell to edit · Tab to next · Enter to confirm</div>
@@ -458,7 +539,7 @@
       <div id="dash-period-wrap" style="display:none;">
         <label style="margin-bottom:4px;">Period</label>
         <select id="dash-period" onchange="renderDashboard()">
-          <option>1</option><option>2</option><option>3</option><option>5</option><option>6</option><option>8</option>
+          <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option>
         </select>
       </div>
       <div id="dash-report-start-wrap" style="display:none;">
@@ -508,51 +589,41 @@
 <!-- MODAL: ADD ATHLETE -->
 <div class="modal-overlay" id="modal-athlete">
   <div class="modal">
-    <div class="modal-title">Add Athlete</div>
+    <div class="modal-title" id="athlete-modal-title">Add Athlete</div>
     <div class="field-row">
       <div class="field" style="flex:2;"><label>Full Name (Last, First)</label><input type="text" id="new-name" placeholder="Cox, Logan" style="width:100%;"></div>
     </div>
     <div class="field-row">
       <div class="field"><label>Period</label>
-        <select id="new-period"><option>1</option><option>2</option><option>3</option><option>5</option><option>6</option><option>8</option></select>
+        <select id="new-period"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option></select>
       </div>
       <div class="field"><label>Class Type</label>
         <select id="new-type"><option>Weight Training</option><option>HOPE Fitness</option></select>
       </div>
     </div>
-    <div class="field-row">
-      <div class="field"><label>Sport</label><input type="text" id="new-sport" placeholder="Football" style="width:100%;"></div>
-      <div class="field"><label>Grad Year</label><input type="number" id="new-grad" placeholder="2027" style="width:100%;"></div>
-    </div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal('modal-athlete')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveAthlete()">Save Athlete</button>
+      <button class="btn btn-primary" id="athlete-save-btn" onclick="saveAthlete()">Save Athlete</button>
     </div>
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-// ── SUPABASE ─────────────────────────────────────────────────────
-const SUPABASE_URL = 'https://rlrnvwxtdmdyjmcgsvww.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_ESlQFWdc1KRDeqPjQi8zBQ_CdZaZVAm';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// ── LOCAL STORAGE ────────────────────────────────────────────────
+const STORAGE_KEY = 'ircs_athlete_tracker';
 
-const PERIODS = ['1','2','3','5','6','8'];
+const PERIODS = ['1','2','3','4','5','6','7','8'];
 let athletes = [];
 let testEntries = [];
 let dressData = {};
 let attendanceData = {};
 let notes = [];
+let _seq = 1; // auto-increment id source (unique across all records)
+
+function nextId(){ return _seq++; }
 
 function numOrNull(v){ if(v==null||v==='') return null; const n=parseFloat(v); return Number.isFinite(n)?n:null; }
-function mapAthlete(r){ return {id:r.id, name:r.name, period:String(r.period), type:r.type, sport:r.sport||'—', grad:r.grad}; }
-function mapEntry(r){
-  return {id:r.id, athleteId:r.athlete_id, date:r.date, bw:numOrNull(r.bw), fly:numOrNull(r.fly),
-    jump:numOrNull(r.jump), rsi:numOrNull(r.rsi), bsq:numOrNull(r.bsq), bench:numOrNull(r.bench),
-    tbdl:numOrNull(r.tbdl), sbdl:numOrNull(r.sbdl), m400:numOrNull(r.m400)};
-}
-function mapNote(r){ return {id:r.id, athleteId:r.athlete_id, date:r.date, issue:r.issue, action:r.action, notes:r.notes||'', done:!!r.done}; }
+
 function setStatus(msg, isErr){
   let el=document.getElementById('db-status');
   if(!el){
@@ -566,42 +637,44 @@ function setStatus(msg, isErr){
   clearTimeout(el._t);
   el._t=setTimeout(()=>{ if(el.textContent===msg) el.remove(); }, isErr?8000:2500);
 }
-async function dbErr(error, fallback){
-  console.error(error);
-  const msg=(error&&error.message)||fallback||'Database error';
-  setStatus(msg, true);
-  if(/relation .* does not exist|Could not find the table/i.test(msg)){
-    alert('Supabase tables are missing.\n\nOpen supabase-schema.sql, paste it into Supabase → SQL Editor, click Run, then refresh this page.');
+
+// Persist the entire in-memory state to localStorage
+function persist(){
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      seq:_seq, athletes, testEntries, dressData, attendanceData, notes
+    }));
+  }catch(e){
+    console.error(e);
+    setStatus('Failed to save to local storage', true);
   }
 }
 
-async function loadAll(){
-  setStatus('Loading from Supabase…');
-  const [aRes, eRes, dRes, attRes, nRes] = await Promise.all([
-    sb.from('athletes').select('*').order('id'),
-    sb.from('test_entries').select('*').order('date'),
-    sb.from('dress_logs').select('*'),
-    sb.from('attendance_logs').select('*'),
-    sb.from('notes').select('*').order('id'),
-  ]);
-  const firstErr = aRes.error||eRes.error||dRes.error||attRes.error||nRes.error;
-  if(firstErr){ await dbErr(firstErr, 'Failed to load data'); return false; }
-
-  athletes = (aRes.data||[]).map(mapAthlete);
-  testEntries = (eRes.data||[]).map(mapEntry);
-  dressData = {};
-  (dRes.data||[]).forEach(r=>{
-    if(!dressData[r.athlete_id]) dressData[r.athlete_id]={};
-    dressData[r.athlete_id][r.date]=r.code;
-  });
-  attendanceData = {};
-  (attRes.data||[]).forEach(r=>{
-    if(!attendanceData[r.athlete_id]) attendanceData[r.athlete_id]={};
-    attendanceData[r.athlete_id][r.date]=r.status;
-  });
-  notes = (nRes.data||[]).map(mapNote);
-  setStatus('Connected to Supabase');
-  return true;
+// Load the entire state from localStorage (or start empty)
+function loadAll(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){
+      const d = JSON.parse(raw);
+      athletes       = Array.isArray(d.athletes) ? d.athletes : [];
+      testEntries    = Array.isArray(d.testEntries) ? d.testEntries : [];
+      dressData      = d.dressData && typeof d.dressData==='object' ? d.dressData : {};
+      attendanceData = d.attendanceData && typeof d.attendanceData==='object' ? d.attendanceData : {};
+      notes          = Array.isArray(d.notes) ? d.notes : [];
+      // restore id counter above every existing id so new ids stay unique
+      const maxId = Math.max(0,
+        ...athletes.map(a=>a.id||0),
+        ...testEntries.map(e=>e.id||0),
+        ...notes.map(n=>n.id||0));
+      _seq = Number.isFinite(d.seq) ? Math.max(d.seq, maxId+1) : maxId+1;
+    }
+    setStatus('Loaded from local storage');
+    return true;
+  }catch(e){
+    console.error(e);
+    setStatus('Failed to load local data', true);
+    return false;
+  }
 }
 
 // ── UTILS ────────────────────────────────────────────────────────
@@ -620,8 +693,8 @@ function showPage(name, btn) {
   document.getElementById('page-'+name).classList.add('active');
   btn.classList.add('active');
   if (name==='roster')    renderRoster();
-  if (name==='dress')     renderDressGrid();
-  if (name==='attendance') renderAttendanceGrid();
+  if (name==='dress')     renderDress();
+  if (name==='attendance') renderAttendance();
   if (name==='database')  renderDB();
   if (name==='dashboard') { populateDashSelects(); renderDashboard(); }
   if (name==='notes')     { populateNoteSelect(); renderNotes(); }
@@ -638,49 +711,106 @@ function renderRoster() {
   document.getElementById('roster-body').innerHTML = list.map(a=>`<tr>
     <td><strong>${a.name}</strong></td><td>${a.period}</td>
     <td><span class="badge ${a.type==='Weight Training'?'badge-wt':'badge-hope'}">${a.type}</span></td>
-    <td>${a.sport}</td><td>${a.grad}</td>
-    <td><button class="btn btn-ghost btn-sm" onclick="removeAthlete(${a.id})">Remove</button></td>
+    <td>
+      <button class="btn btn-navy btn-sm" onclick="openEditAthlete(${a.id})">Edit</button>
+      <button class="btn btn-ghost btn-sm" onclick="removeAthlete(${a.id})">Remove</button>
+    </td>
   </tr>`).join('');
   document.getElementById('roster-count').textContent = list.length+' athletes shown';
 }
-function openAddAthlete() { document.getElementById('modal-athlete').classList.add('open'); }
-async function saveAthlete() {
+let editingAthleteId = null;
+
+function openAddAthlete() {
+  editingAthleteId = null;
+  document.getElementById('athlete-modal-title').textContent = 'Add Athlete';
+  document.getElementById('athlete-save-btn').textContent = 'Save Athlete';
+  document.getElementById('new-name').value  = '';
+  document.getElementById('new-period').value = '1';
+  document.getElementById('new-type').value   = 'Weight Training';
+  document.getElementById('modal-athlete').classList.add('open');
+}
+function openEditAthlete(id) {
+  const a = getAth(id);
+  if (!a) return;
+  editingAthleteId = id;
+  document.getElementById('athlete-modal-title').textContent = 'Edit Athlete';
+  document.getElementById('athlete-save-btn').textContent = 'Update Athlete';
+  document.getElementById('new-name').value   = a.name;
+  document.getElementById('new-period').value = a.period;
+  document.getElementById('new-type').value   = a.type;
+  document.getElementById('modal-athlete').classList.add('open');
+}
+function saveAthlete() {
   const name = document.getElementById('new-name').value.trim();
   if (!name) return alert('Name required');
-  const row = {
+  const data = {
     name,
     period: document.getElementById('new-period').value,
-    type:   document.getElementById('new-type').value,
-    sport:  document.getElementById('new-sport').value.trim()||'—',
-    grad:   parseInt(document.getElementById('new-grad').value)||2027
+    type:   document.getElementById('new-type').value
   };
-  const { data, error } = await sb.from('athletes').insert(row).select().single();
-  if (error) return dbErr(error, 'Failed to save athlete');
-  athletes.push(mapAthlete(data));
+  if (editingAthleteId != null) {
+    const a = getAth(editingAthleteId);
+    if (a) Object.assign(a, data);
+    setStatus('Athlete updated');
+  } else {
+    athletes.push({ id: nextId(), ...data });
+    setStatus('Athlete saved');
+  }
+  persist();
   closeModal('modal-athlete');
   renderRoster();
-  ['new-name','new-sport','new-grad'].forEach(id => document.getElementById(id).value='');
-  setStatus('Athlete saved');
+  editingAthleteId = null;
+  document.getElementById('new-name').value='';
 }
-async function removeAthlete(id) {
+function removeAthlete(id) {
   if (!confirm('Remove athlete?')) return;
-  const { error } = await sb.from('athletes').delete().eq('id', id);
-  if (error) return dbErr(error, 'Failed to remove athlete');
   athletes = athletes.filter(a => a.id!==id);
   testEntries = testEntries.filter(e => e.athleteId!==id);
   notes = notes.filter(n => n.athleteId!==id);
   delete dressData[id];
   delete attendanceData[id];
+  persist();
   renderRoster();
   setStatus('Athlete removed');
 }
 
-// ── PAGE 2: DRESS CODE ───────────────────────────────────────────
+// ── SHARED WEEK HELPERS (Dress + Attendance) ─────────────────────
 function buildDates() {
   const dates=[]; let d=new Date('2026-08-11'); const end=new Date('2027-05-22');
   while(d<=end){ if(d.getDay()&&d.getDay()!==6) dates.push(new Date(d)); d.setDate(d.getDate()+1); }
   return dates;
 }
+let _weeksCache=null;
+function getWeeks(){
+  if(_weeksCache) return _weeksCache;
+  const dates=buildDates(); const weeks=[]; let wk=[];
+  dates.forEach((d,i)=>{ wk.push(d); if(d.getDay()===5||i===dates.length-1){weeks.push([...wk]);wk=[];} });
+  _weeksCache=weeks; return weeks;
+}
+const _MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const _DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const isoOf   = d => d.toISOString().split('T')[0];
+const dayName = d => _DAYS[d.getDay()];
+function weekLabel(w){
+  const a=w[0], b=w[w.length-1];
+  const bMonth = b.getMonth()!==a.getMonth() ? _MONTHS[b.getMonth()]+' ' : '';
+  return `${_MONTHS[a.getMonth()]} ${a.getDate()} – ${bMonth}${b.getDate()}`;
+}
+// index of the week containing/after today, so you land on "this week"
+function defaultWeekIndex(){
+  const weeks=getWeeks(); const today=new Date();
+  const t=isoOf(new Date(Date.UTC(today.getFullYear(),today.getMonth(),today.getDate())));
+  for(let i=0;i<weeks.length;i++){ if(isoOf(weeks[i][weeks[i].length-1])>=t) return i; }
+  return 0;
+}
+function fillWeekSelect(selId, idx){
+  const weeks=getWeeks();
+  document.getElementById(selId).innerHTML =
+    weeks.map((w,i)=>`<option value="${i}">Wk ${i+1} · ${weekLabel(w)}</option>`).join('');
+  document.getElementById(selId).value=idx;
+}
+
+// ── PAGE 2: DRESS CODE ───────────────────────────────────────────
 function weekScore(aid, weekDates) {
   const v = dressData[aid] || {};
   const violations = weekDates.filter(d => v[d.toISOString().split('T')[0]]).length;
@@ -694,94 +824,70 @@ function scoreColor(score) {
   return 'background:#fde8e8;color:#C8302B;font-weight:700;';
 }
 
-function renderDressGrid() {
-  const fp = document.getElementById('dress-period-filter').value;
-  const dates = buildDates();
-  const weeks=[]; let wk=[];
-  dates.forEach((d,i)=>{ wk.push(d); if(d.getDay()===5||i===dates.length-1){weeks.push([...wk]);wk=[];} });
+const DRESS_CYCLE = ['','NS','NP','WP','NSH'];
+let dressWeekIdx = null;
 
-  // thead row 1: Period | Name | Tally | Wk1 (5 days + score col) | Wk2 ...
-  let thead=`<tr>
-    <th class="col-period">Per.</th>
-    <th class="col-name">Athlete</th>
-    <th class="col-tally">Tally</th>`;
-  weeks.forEach((w,wi)=>thead+=`<th class="week-hdr" colspan="${w.length+1}">Wk ${wi+1}</th>`);
-  thead+=`</tr><tr>
-    <th class="col-period"></th>
-    <th class="col-name"></th>
-    <th class="col-tally"></th>`;
-  weeks.forEach((w,wi)=>{
-    w.forEach(d=>thead+=`<th class="day-hdr">${d.getMonth()+1}/${d.getDate()}</th>`);
-    thead+=`<th class="score-hdr">Score</th>`;
-  });
-  thead+='</tr>';
-
-  // total colspan = 3 fixed + sum of (days+1) per week
-  const totalCols = 3 + weeks.reduce((s,w)=>s+w.length+1, 0);
-
-  let tbody='';
-  PERIODS.forEach(p=>{
-    if(fp&&fp!==p) return;
-    const grp=perAths(p); if(!grp.length) return;
-    tbody+=`<tr class="period-divider"><td colspan="${totalCols}">Period ${p}</td></tr>`;
-    grp.forEach(a=>{
-      const v=dressData[a.id]||{}, tally=Object.keys(v).length;
-      tbody+=`<tr><td class="col-period">${p}</td><td class="col-name">${a.name}</td>
-        <td class="col-tally">${tally||''}</td>`;
-      weeks.forEach((w,wi)=>{
-        w.forEach(d=>{
-          const ds=d.toISOString().split('T')[0], val=v[ds]||'';
-          tbody+=`<td><select class="dress-cell${val?' has-v':''}" data-aid="${a.id}" data-date="${ds}" onchange="logDress(this)">
-            <option value=""></option>
-            <option value="NS" ${val==='NS'?'selected':''}>NS</option>
-            <option value="NP" ${val==='NP'?'selected':''}>NP</option>
-            <option value="WP" ${val==='WP'?'selected':''}>WP</option>
-            <option value="NSH" ${val==='NSH'?'selected':''}>NSH</option>
-          </select></td>`;
-        });
-        // weekly score cell
-        const sc = weekScore(a.id, w);
-        tbody+=`<td class="week-score-cell" id="wsc-${a.id}-${wi}" style="${scoreColor(sc)}">${sc}</td>`;
-      });
-      tbody+='</tr>';
-    });
-  });
-
-  document.getElementById('dress-grid-wrap').innerHTML=
-    `<table class="dress-grid"><thead>${thead}</thead><tbody>${tbody}</tbody></table>`;
+function dressWeek(delta){
+  const weeks=getWeeks();
+  if(dressWeekIdx==null) dressWeekIdx=defaultWeekIndex();
+  dressWeekIdx=Math.min(weeks.length-1, Math.max(0, dressWeekIdx+delta));
+  renderDress();
+}
+function dressWeekPick(){
+  dressWeekIdx=parseInt(document.getElementById('dress-week-sel').value);
+  renderDress();
 }
 
-async function logDress(sel) {
-  const aid=parseInt(sel.dataset.aid), date=sel.dataset.date, val=sel.value;
-  if(!dressData[aid]) dressData[aid]={};
-  if(val){
-    const { error } = await sb.from('dress_logs').upsert({ athlete_id:aid, date, code:val }, { onConflict:'athlete_id,date' });
-    if(error) return dbErr(error, 'Failed to save dress log');
-    dressData[aid][date]=val; sel.classList.add('has-v');
-  } else {
-    const { error } = await sb.from('dress_logs').delete().eq('athlete_id',aid).eq('date',date);
-    if(error) return dbErr(error, 'Failed to clear dress log');
-    delete dressData[aid][date]; sel.classList.remove('has-v');
-  }
+function renderDress() {
+  const weeks=getWeeks();
+  if(dressWeekIdx==null) dressWeekIdx=defaultWeekIndex();
+  fillWeekSelect('dress-week-sel', dressWeekIdx);
+  document.getElementById('dress-prev').disabled = dressWeekIdx<=0;
+  document.getElementById('dress-next').disabled = dressWeekIdx>=weeks.length-1;
+  const week=weeks[dressWeekIdx];
 
-  // update tally
-  const t=Object.keys(dressData[aid]||{}).length;
-  const tc=sel.closest('tr').querySelector('.col-tally');
-  if(tc) tc.textContent=t||'';
+  const fp = document.getElementById('dress-period-filter').value;
+  const s  = (document.getElementById('dress-search').value||'').toLowerCase();
 
-  // update every weekly score cell for this athlete in this row
-  const allScoreCells = sel.closest('tr').querySelectorAll('.week-score-cell');
-  allScoreCells.forEach((cell, wi) => {
-    // rebuild week dates for this week index
-    const dates = buildDates();
-    const weeks=[]; let wk=[];
-    dates.forEach((d,i)=>{ wk.push(d); if(d.getDay()===5||i===dates.length-1){weeks.push([...wk]);wk=[];} });
-    if (weeks[wi]) {
-      const sc = weekScore(aid, weeks[wi]);
-      cell.textContent = sc;
-      cell.setAttribute('style', scoreColor(sc));
-    }
+  let html='';
+  PERIODS.forEach(p=>{
+    if(fp&&fp!==p) return;
+    const grp=perAths(p).filter(a=>!s||a.name.toLowerCase().includes(s));
+    if(!grp.length) return;
+    html+=`<div class="wk-period-label">Period ${p}</div>`;
+    grp.forEach(a=>{
+      const v=dressData[a.id]||{}, tally=Object.keys(v).length, sc=weekScore(a.id, week);
+      const days=week.map(d=>{
+        const ds=isoOf(d), val=v[ds]||'';
+        return `<button class="day-btn${val?' dv-'+val:''}" onclick="cycleDress(${a.id},'${ds}')">
+          <span class="day-name">${dayName(d)}</span>
+          <span class="day-date">${d.getMonth()+1}/${d.getDate()}</span>
+          <span class="day-val">${val||'·'}</span>
+        </button>`;
+      }).join('');
+      html+=`<div class="wk-card">
+        <div class="wk-card-head">
+          <div>
+            <div class="wk-card-name">${a.name}</div>
+            <div class="wk-card-meta">Season violations: ${tally}</div>
+          </div>
+          <div class="wk-score" style="${scoreColor(sc)}">${sc}</div>
+        </div>
+        <div class="day-row">${days}</div>
+      </div>`;
+    });
   });
+  document.getElementById('dress-list').innerHTML =
+    html || '<div class="text-sm" style="padding:14px;">No athletes match. Add athletes on the Roster tab.</div>';
+}
+
+function cycleDress(aid, ds){
+  if(!dressData[aid]) dressData[aid]={};
+  const cur=dressData[aid][ds]||'';
+  const next=DRESS_CYCLE[(DRESS_CYCLE.indexOf(cur)+1)%DRESS_CYCLE.length];
+  if(next) dressData[aid][ds]=next; else delete dressData[aid][ds];
+  persist();
+  renderDress();
 }
 
 // ── PAGE: ATTENDANCE ─────────────────────────────────────────────
@@ -801,120 +907,107 @@ function attAbsences(aid) {
   return Object.values(v).filter(s => s === 'A' || s === 'E').length;
 }
 
-function renderAttendanceGrid() {
+const ATT_CYCLE = ['','P','A','T','E'];
+let attWeekIdx = null;
+
+function attWeek(delta){
+  const weeks=getWeeks();
+  if(attWeekIdx==null) attWeekIdx=defaultWeekIndex();
+  attWeekIdx=Math.min(weeks.length-1, Math.max(0, attWeekIdx+delta));
+  renderAttendance();
+}
+function attWeekPick(){
+  attWeekIdx=parseInt(document.getElementById('att-week-sel').value);
+  renderAttendance();
+}
+
+function renderAttendance() {
+  const weeks=getWeeks();
+  if(attWeekIdx==null) attWeekIdx=defaultWeekIndex();
+  fillWeekSelect('att-week-sel', attWeekIdx);
+  document.getElementById('att-prev').disabled = attWeekIdx<=0;
+  document.getElementById('att-next').disabled = attWeekIdx>=weeks.length-1;
+  const week=weeks[attWeekIdx];
+
   const fp = document.getElementById('att-period-filter').value;
-  const dates = buildDates();
-  const weeks=[]; let wk=[];
-  dates.forEach((d,i)=>{ wk.push(d); if(d.getDay()===5||i===dates.length-1){weeks.push([...wk]);wk=[];} });
+  const s  = (document.getElementById('att-search').value||'').toLowerCase();
 
-  let thead=`<tr>
-    <th class="col-period">Per.</th>
-    <th class="col-name">Athlete</th>
-    <th class="col-tally">Abs.</th>`;
-  weeks.forEach((w,wi)=>thead+=`<th class="week-hdr" colspan="${w.length+1}">Wk ${wi+1}</th>`);
-  thead+=`</tr><tr>
-    <th class="col-period"></th>
-    <th class="col-name"></th>
-    <th class="col-tally"></th>`;
-  weeks.forEach((w,wi)=>{
-    w.forEach(d=>thead+=`<th class="day-hdr">${d.getMonth()+1}/${d.getDate()}</th>`);
-    thead+=`<th class="score-hdr">%</th>`;
-  });
-  thead+='</tr>';
-
-  const totalCols = 3 + weeks.reduce((s,w)=>s+w.length+1, 0);
-
-  let tbody='';
+  let html='';
   PERIODS.forEach(p=>{
     if(fp&&fp!==p) return;
-    const grp=perAths(p); if(!grp.length) return;
-    tbody+=`<tr class="period-divider"><td colspan="${totalCols}">Period ${p}</td></tr>`;
+    const grp=perAths(p).filter(a=>!s||a.name.toLowerCase().includes(s));
+    if(!grp.length) return;
+    html+=`<div class="wk-period-label">Period ${p}</div>`;
     grp.forEach(a=>{
-      const v=attendanceData[a.id]||{}, abs=attAbsences(a.id);
-      tbody+=`<tr><td class="col-period">${p}</td><td class="col-name">${a.name}</td>
-        <td class="col-tally">${abs||''}</td>`;
-      weeks.forEach((w,wi)=>{
-        w.forEach(d=>{
-          const ds=d.toISOString().split('T')[0], val=v[ds]||'';
-          tbody+=`<td><select class="dress-cell att-cell${val?' att-'+val:''}" data-aid="${a.id}" data-date="${ds}" onchange="logAttendance(this)">
-            <option value=""></option>
-            ${ATT_STATUSES.map(s=>`<option value="${s}" ${val===s?'selected':''}>${s}</option>`).join('')}
-          </select></td>`;
-        });
-        const sc = attRate(a.id, w);
-        tbody+=`<td class="week-score-cell" id="asc-${a.id}-${wi}" style="${sc==null?'color:var(--gray2);':scoreColor(sc)}">${sc==null?'—':sc}</td>`;
-      });
-      tbody+='</tr>';
+      const v=attendanceData[a.id]||{}, abs=attAbsences(a.id), sc=attRate(a.id, week);
+      const days=week.map(d=>{
+        const ds=isoOf(d), val=v[ds]||'';
+        return `<button class="day-btn${val?' av-'+val:''}" onclick="cycleAttendance(${a.id},'${ds}')">
+          <span class="day-name">${dayName(d)}</span>
+          <span class="day-date">${d.getMonth()+1}/${d.getDate()}</span>
+          <span class="day-val">${val||'·'}</span>
+        </button>`;
+      }).join('');
+      const scStyle = sc==null?'background:#eef0f3;color:var(--gray2);':scoreColor(sc);
+      html+=`<div class="wk-card">
+        <div class="wk-card-head">
+          <div>
+            <div class="wk-card-name">${a.name}</div>
+            <div class="wk-card-meta">Season absences: ${abs}</div>
+          </div>
+          <div class="wk-score" style="${scStyle}">${sc==null?'—':sc+'%'}</div>
+        </div>
+        <div class="day-row">${days}</div>
+      </div>`;
     });
   });
-
-  document.getElementById('att-grid-wrap').innerHTML=
-    `<table class="dress-grid"><thead>${thead}</thead><tbody>${tbody}</tbody></table>`;
+  document.getElementById('att-list').innerHTML =
+    html || '<div class="text-sm" style="padding:14px;">No athletes match. Add athletes on the Roster tab.</div>';
 }
 
-async function logAttendance(sel) {
-  const aid=parseInt(sel.dataset.aid), date=sel.dataset.date, val=sel.value;
+function cycleAttendance(aid, ds){
   if(!attendanceData[aid]) attendanceData[aid]={};
-  if(val){
-    const { error } = await sb.from('attendance_logs').upsert({ athlete_id:aid, date, status:val }, { onConflict:'athlete_id,date' });
-    if(error) return dbErr(error, 'Failed to save attendance');
-    attendanceData[aid][date]=val;
-  } else {
-    const { error } = await sb.from('attendance_logs').delete().eq('athlete_id',aid).eq('date',date);
-    if(error) return dbErr(error, 'Failed to clear attendance');
-    delete attendanceData[aid][date];
-  }
-
-  ATT_STATUSES.forEach(s=>sel.classList.remove('att-'+s));
-  if(val) sel.classList.add('att-'+val);
-
-  const tc=sel.closest('tr').querySelector('.col-tally');
-  if(tc) tc.textContent=attAbsences(aid)||'';
-
-  const dates = buildDates();
-  const weeks=[]; let wk=[];
-  dates.forEach((d,i)=>{ wk.push(d); if(d.getDay()===5||i===dates.length-1){weeks.push([...wk]);wk=[];} });
-  sel.closest('tr').querySelectorAll('.week-score-cell').forEach((cell, wi) => {
-    if (!weeks[wi]) return;
-    const sc = attRate(aid, weeks[wi]);
-    cell.textContent = sc==null?'—':sc;
-    cell.setAttribute('style', sc==null?'color:var(--gray2);':scoreColor(sc));
-  });
+  const cur=attendanceData[aid][ds]||'';
+  const next=ATT_CYCLE[(ATT_CYCLE.indexOf(cur)+1)%ATT_CYCLE.length];
+  if(next) attendanceData[aid][ds]=next; else delete attendanceData[aid][ds];
+  persist();
+  renderAttendance();
 }
 
-// Mark every currently-shown athlete Present on the chosen date
-async function markAllPresent() {
-  const date=document.getElementById('att-mark-date').value;
-  if(!date) return alert('Pick a date first');
+// Mark every currently-shown athlete Present on empty days of the selected week
+function markWeekPresent() {
+  const weeks=getWeeks();
+  if(attWeekIdx==null) attWeekIdx=defaultWeekIndex();
+  const week=weeks[attWeekIdx];
   const fp=document.getElementById('att-period-filter').value;
-  const rows = athletes.filter(a=>!fp||a.period===fp).map(a=>({ athlete_id:a.id, date, status:'P' }));
-  if(!rows.length) return;
-  const { error } = await sb.from('attendance_logs').upsert(rows, { onConflict:'athlete_id,date' });
-  if(error) return dbErr(error, 'Failed to mark present');
-  rows.forEach(r=>{
-    if(!attendanceData[r.athlete_id]) attendanceData[r.athlete_id]={};
-    attendanceData[r.athlete_id][date]='P';
+  const s =(document.getElementById('att-search').value||'').toLowerCase();
+  const shown = athletes.filter(a=>(!fp||a.period===fp)&&(!s||a.name.toLowerCase().includes(s)));
+  if(!shown.length) return alert('No athletes shown');
+  shown.forEach(a=>{
+    if(!attendanceData[a.id]) attendanceData[a.id]={};
+    week.forEach(d=>{ const ds=isoOf(d); if(!attendanceData[a.id][ds]) attendanceData[a.id][ds]='P'; });
   });
-  renderAttendanceGrid();
-  setStatus('Marked present');
+  persist();
+  renderAttendance();
+  setStatus('Marked present for the week');
 }
 
 // ── PAGE 3: DATABASE ─────────────────────────────────────────────
 
 // ADD A TEST DATE FOR A WHOLE PERIOD
-async function addPeriodDate() {
+function addPeriodDate() {
   const p    = document.getElementById('add-period-sel').value;
   const date = document.getElementById('add-date-input').value;
   if (!date) return alert('Pick a date first');
   const grp  = perAths(p);
   if (!grp.length) return alert('No athletes in that period');
-  const rows = grp
-    .filter(a => !testEntries.find(e => e.athleteId===a.id && e.date===date))
-    .map(a => ({ athlete_id:a.id, date }));
-  if (!rows.length) return alert('All athletes in Period '+p+' already have an entry for '+date);
-  const { data, error } = await sb.from('test_entries').insert(rows).select();
-  if (error) return dbErr(error, 'Failed to add test date');
-  (data||[]).forEach(r => testEntries.push(mapEntry(r)));
+  const toAdd = grp.filter(a => !testEntries.find(e => e.athleteId===a.id && e.date===date));
+  if (!toAdd.length) return alert('All athletes in Period '+p+' already have an entry for '+date);
+  toAdd.forEach(a => testEntries.push({
+    id:nextId(), athleteId:a.id, date,
+    bw:null, fly:null, jump:null, rsi:null, bsq:null, bench:null, tbdl:null, sbdl:null, m400:null
+  }));
+  persist();
   // set filter to that period so user lands on the right view
   document.getElementById('db-period-filter').value = p;
   renderDB();
@@ -1009,12 +1102,11 @@ function startEdit(td) {
     });
   }
 
-  const commit = async () => {
+  const commit = () => {
     const rawVal = inp.value.trim();
     const newVal = rawVal===''?null:parseFloat(rawVal);
-    const { error } = await sb.from('test_entries').update({ [key]: newVal }).eq('id', eid);
-    if (error) return dbErr(error, 'Failed to save entry');
     entry[key] = newVal;
+    persist();
     td.classList.remove('editing');
     td.classList.add('unsaved');
     td.dataset.dirty = '1';
@@ -1072,11 +1164,10 @@ function markRowDirty(eid) {
   });
 }
 
-async function deleteEntry(id){
+function deleteEntry(id){
   if(!confirm('Delete this row?')) return;
-  const { error } = await sb.from('test_entries').delete().eq('id', id);
-  if (error) return dbErr(error, 'Failed to delete entry');
   testEntries = testEntries.filter(e=>e.id!==id);
+  persist();
   renderDB();
   setStatus('Entry deleted');
 }
@@ -1105,7 +1196,7 @@ function calcQLMPH(aid){
   cell.classList.toggle('live',!!mph);
   document.getElementById(`ql-saved-${aid}`).textContent='';
 }
-async function saveAllQuickLog(){
+function saveAllQuickLog(){
   const p=document.getElementById('ql-period').value;
   const date=document.getElementById('ql-date').value;
   if(!date) return alert('Set a date first');
@@ -1117,17 +1208,17 @@ async function saveAllQuickLog(){
     if(!sec||sec<=0) continue;
     const existing=testEntries.find(e=>e.athleteId===a.id&&e.date===date);
     if(existing){
-      const { error } = await sb.from('test_entries').update({ fly:sec }).eq('id', existing.id);
-      if(error) return dbErr(error, 'Failed to save fly time');
       existing.fly=sec;
     } else {
-      const { data, error } = await sb.from('test_entries').insert({ athlete_id:a.id, date, fly:sec }).select().single();
-      if(error) return dbErr(error, 'Failed to save fly time');
-      testEntries.push(mapEntry(data));
+      testEntries.push({
+        id:nextId(), athleteId:a.id, date, fly:sec,
+        bw:null, jump:null, rsi:null, bsq:null, bench:null, tbdl:null, sbdl:null, m400:null
+      });
     }
     document.getElementById(`ql-saved-${a.id}`).textContent='✓';
     saved++;
   }
+  persist();
   document.getElementById('ql-status').textContent=
     saved?`${saved} athlete${saved>1?'s':''} logged`:'No times entered';
   if(saved) setStatus('Quick log saved');
@@ -1269,7 +1360,7 @@ function renderAthleteCard(){
       <div class="player-left">
         <div class="player-photo">PHOTO</div>
         <div class="player-name">${a.name}</div>
-        <div class="player-meta">${a.sport}<br>Period ${a.period} · Class of ${a.grad}</div>
+        <div class="player-meta">Period ${a.period}</div>
         <div class="player-sport">${a.type}</div>
       </div>
       <div class="player-right">
@@ -1319,31 +1410,27 @@ function populateNoteSelect(){
     '<option value="">Select...</option>'+s.map(a=>`<option value="${a.id}">${a.name}</option>`).join('');
   document.getElementById('note-date').value=new Date().toISOString().split('T')[0];
 }
-async function addNote(){
+function addNote(){
   const aid=parseInt(document.getElementById('note-athlete').value);
   const date=document.getElementById('note-date').value;
   const issue=document.getElementById('note-issue').value.trim();
   if(!aid||!date||!issue) return alert('Athlete, date, and issue required');
-  const row = {
-    athlete_id:aid, date, issue,
+  notes.push({
+    id:nextId(), athleteId:aid, date, issue,
     action:document.getElementById('note-action').value,
     notes:document.getElementById('note-notes').value.trim(),
     done:false
-  };
-  const { data, error } = await sb.from('notes').insert(row).select().single();
-  if(error) return dbErr(error, 'Failed to add note');
-  notes.push(mapNote(data));
+  });
+  persist();
   ['note-issue','note-notes'].forEach(id=>document.getElementById(id).value='');
   renderNotes();
   setStatus('Note saved');
 }
-async function toggleNoteDone(id){
+function toggleNoteDone(id){
   const n=notes.find(x=>x.id===id);
   if(!n) return;
-  const next=!n.done;
-  const { error } = await sb.from('notes').update({ done:next }).eq('id', id);
-  if(error) return dbErr(error, 'Failed to update note');
-  n.done=next;
+  n.done=!n.done;
+  persist();
   renderNotes();
 }
 function renderNotes(){
@@ -1493,8 +1580,7 @@ function buildAthleteReport(a, start, end, rangeLabel){
         </div>
         <div class="rpt-athlete-meta">
           <div class="rpt-athlete-name">${a.name}</div>
-          Period ${a.period} · ${a.type}<br>
-          Sport: ${a.sport} · Class of ${a.grad}
+          Period ${a.period} · ${a.type}
         </div>
       </div>
 
@@ -1717,9 +1803,8 @@ document.querySelectorAll('.modal-overlay').forEach(el=>
 
 // ── INIT ─────────────────────────────────────────────────────────
 document.getElementById('add-date-input').value = new Date().toISOString().split('T')[0];
-document.getElementById('att-mark-date').value = new Date().toISOString().split('T')[0];
-(async function init(){
-  const ok = await loadAll();
+(function init(){
+  const ok = loadAll();
   if (ok) renderRoster();
 })();
 </script>
