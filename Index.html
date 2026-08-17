@@ -239,6 +239,10 @@
   .att-pill.A{background:var(--red-bg);color:var(--red);}
   .att-pill.T{background:var(--yellow-bg);color:#7a4500;}
   .att-pill.E{background:#eaf1fb;color:#1c5aa8;}
+  .part-pill{display:inline-block;min-width:20px;text-align:center;font-weight:700;font-size:11px;
+            padding:1px 6px;border-radius:4px;}
+  .part-pill.LE{background:var(--yellow-bg);color:#7a4500;}
+  .part-pill.CNP{background:var(--red-bg);color:var(--red);}
   .dress-tally-line{display:flex;gap:16px;align-items:center;flex-wrap:wrap;}
   .dress-type-list{display:flex;gap:10px;flex-wrap:wrap;flex:1;}
   .dress-type-item{background:var(--paper);border:1px solid var(--border);border-radius:6px;
@@ -251,7 +255,7 @@
   #dash-output .rpt{margin-bottom:20px;}
   .rpt-foot-wrap{padding:10px 30px;}
 
-  /* ── MOBILE WEEKLY VIEW (Dress + Attendance) ── */
+  /* ── MOBILE WEEKLY VIEW (Dress + Attendance + Participation) ── */
   .mobile-filters{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px;}
   .mobile-filters .fi{display:flex;flex-direction:column;gap:4px;}
   .mobile-filters .fi.grow{flex:1;min-width:150px;}
@@ -291,6 +295,9 @@
   .day-btn.av-A{background:var(--red-bg);border-color:#f0b3b3;} .day-btn.av-A .day-val{color:var(--red);}
   .day-btn.av-T{background:var(--yellow-bg);border-color:#efd98c;} .day-btn.av-T .day-val{color:#7a4500;}
   .day-btn.av-E{background:#eaf1fb;border-color:#bcd3f2;} .day-btn.av-E .day-val{color:#1c5aa8;}
+  /* participation states */
+  .day-btn.pv-LE{background:var(--yellow-bg);border-color:#efd98c;} .day-btn.pv-LE .day-val{color:#7a4500;}
+  .day-btn.pv-CNP{background:var(--red-bg);border-color:#f0b3b3;} .day-btn.pv-CNP .day-val{color:var(--red);}
   .tap-hint{font-size:11.5px;color:var(--gray2);margin-bottom:10px;}
 
   /* ── GENERAL PHONE RESPONSIVENESS ── */
@@ -333,7 +340,7 @@
     .rpt-foot-wrap{padding:0;}
     .rpt-section { page-break-inside:avoid; }
     table.rpt-table th { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-    .rpt-section-title, .att-pill, .rpt-stat { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    .rpt-section-title, .att-pill, .part-pill, .rpt-stat { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
     @page { margin:14mm; }
   }
 </style>
@@ -345,9 +352,10 @@
   <button class="tab-btn active" onclick="showPage('roster',this)">① Roster</button>
   <button class="tab-btn" onclick="showPage('attendance',this)">② Attendance</button>
   <button class="tab-btn" onclick="showPage('dress',this)">③ Dress Code</button>
-  <button class="tab-btn" onclick="showPage('database',this)">④ Database</button>
-  <button class="tab-btn" onclick="showPage('dashboard',this)">⑤ Dashboard</button>
-  <button class="tab-btn" onclick="showPage('notes',this)">⑥ Notes</button>
+  <button class="tab-btn" onclick="showPage('participation',this)">④ Participation</button>
+  <button class="tab-btn" onclick="showPage('database',this)">⑤ Database</button>
+  <button class="tab-btn" onclick="showPage('dashboard',this)">⑥ Dashboard</button>
+  <button class="tab-btn" onclick="showPage('notes',this)">⑦ Notes</button>
 </nav>
 
 <!-- PAGE 1: ROSTER -->
@@ -400,6 +408,34 @@
     </div>
     <div class="tap-hint">Tap a day to mark: empty → NS → NP → WP → NSH → empty. Score = 100 − 20 per violation that week.</div>
     <div class="week-cards" id="dress-list"></div>
+  </div>
+</div>
+
+<!-- PAGE: PARTICIPATION -->
+<div id="page-participation" class="page">
+  <div class="page-title">Participation</div>
+  <div class="page-sub">LE = Lack of Effort · CNP = Choose Not to Participate</div>
+  <div class="card">
+    <div class="mobile-filters">
+      <div class="fi">
+        <label>Period</label>
+        <select id="part-period-filter" onchange="renderParticipation()">
+          <option value="">All Periods</option>
+          <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option>
+        </select>
+      </div>
+      <div class="fi grow">
+        <label>Search Student</label>
+        <input type="text" id="part-search" placeholder="Type a name..." oninput="renderParticipation()">
+      </div>
+    </div>
+    <div class="week-nav">
+      <button class="week-arrow" id="part-prev" onclick="partWeek(-1)">◀</button>
+      <select id="part-week-sel" onchange="partWeekPick()"></select>
+      <button class="week-arrow" id="part-next" onclick="partWeek(1)">▶</button>
+    </div>
+    <div class="tap-hint">Tap a day to mark: empty → LE → CNP → empty. Score = 100 − 20 per incident that week.</div>
+    <div class="week-cards" id="part-list"></div>
   </div>
 </div>
 
@@ -618,6 +654,7 @@ let athletes = [];
 let testEntries = [];
 let dressData = {};
 let attendanceData = {};
+let participationData = {};
 let notes = [];
 let _seq = 1; // auto-increment id source (unique across all records)
 
@@ -643,7 +680,7 @@ function setStatus(msg, isErr){
 function persist(){
   try{
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      seq:_seq, athletes, testEntries, dressData, attendanceData, notes
+      seq:_seq, athletes, testEntries, dressData, attendanceData, participationData, notes
     }));
   }catch(e){
     console.error(e);
@@ -659,9 +696,10 @@ function loadAll(){
       const d = JSON.parse(raw);
       athletes       = Array.isArray(d.athletes) ? d.athletes : [];
       testEntries    = Array.isArray(d.testEntries) ? d.testEntries : [];
-      dressData      = d.dressData && typeof d.dressData==='object' ? d.dressData : {};
-      attendanceData = d.attendanceData && typeof d.attendanceData==='object' ? d.attendanceData : {};
-      notes          = Array.isArray(d.notes) ? d.notes : [];
+      dressData         = d.dressData && typeof d.dressData==='object' ? d.dressData : {};
+      attendanceData    = d.attendanceData && typeof d.attendanceData==='object' ? d.attendanceData : {};
+      participationData = d.participationData && typeof d.participationData==='object' ? d.participationData : {};
+      notes             = Array.isArray(d.notes) ? d.notes : [];
       // restore id counter above every existing id so new ids stay unique
       const maxId = Math.max(0,
         ...athletes.map(a=>a.id||0),
@@ -693,10 +731,11 @@ function showPage(name, btn) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('page-'+name).classList.add('active');
   btn.classList.add('active');
-  if (name==='roster')    renderRoster();
-  if (name==='dress')     renderDress();
-  if (name==='attendance') renderAttendance();
-  if (name==='database')  renderDB();
+  if (name==='roster')        renderRoster();
+  if (name==='dress')         renderDress();
+  if (name==='participation') renderParticipation();
+  if (name==='attendance')    renderAttendance();
+  if (name==='database')      renderDB();
   if (name==='dashboard') { populateDashSelects(); renderDashboard(); }
   if (name==='notes')     { populateNoteSelect(); renderNotes(); }
 }
@@ -770,12 +809,13 @@ function removeAthlete(id) {
   notes = notes.filter(n => n.athleteId!==id);
   delete dressData[id];
   delete attendanceData[id];
+  delete participationData[id];
   persist();
   renderRoster();
   setStatus('Athlete removed');
 }
 
-// ── SHARED WEEK HELPERS (Dress + Attendance) ─────────────────────
+// ── SHARED WEEK HELPERS (Dress + Attendance + Participation) ─────
 function buildDates() {
   const dates=[]; let d=new Date('2026-08-11'); const end=new Date('2027-05-22');
   while(d<=end){ if(d.getDay()&&d.getDay()!==6) dates.push(new Date(d)); d.setDate(d.getDate()+1); }
@@ -887,6 +927,77 @@ function cycleDress(aid, ds){
   if(next) dressData[aid][ds]=next; else delete dressData[aid][ds];
   persist();
   renderDress();
+}
+
+// ── PAGE: PARTICIPATION ──────────────────────────────────────────
+const PART_CYCLE = ['','LE','CNP'];
+let partWeekIdx = null;
+
+function partWeekScore(aid, weekDates) {
+  const v = participationData[aid] || {};
+  const incidents = weekDates.filter(d => v[d.toISOString().split('T')[0]]).length;
+  return Math.max(0, 100 - incidents * 20);
+}
+
+function partWeek(delta){
+  const weeks=getWeeks();
+  if(partWeekIdx==null) partWeekIdx=defaultWeekIndex();
+  partWeekIdx=Math.min(weeks.length-1, Math.max(0, partWeekIdx+delta));
+  renderParticipation();
+}
+function partWeekPick(){
+  partWeekIdx=parseInt(document.getElementById('part-week-sel').value);
+  renderParticipation();
+}
+
+function renderParticipation() {
+  const weeks=getWeeks();
+  if(partWeekIdx==null) partWeekIdx=defaultWeekIndex();
+  fillWeekSelect('part-week-sel', partWeekIdx);
+  document.getElementById('part-prev').disabled = partWeekIdx<=0;
+  document.getElementById('part-next').disabled = partWeekIdx>=weeks.length-1;
+  const week=weeks[partWeekIdx];
+
+  const fp = document.getElementById('part-period-filter').value;
+  const s  = (document.getElementById('part-search').value||'').toLowerCase();
+
+  let html='';
+  PERIODS.forEach(p=>{
+    if(fp&&fp!==p) return;
+    const grp=perAths(p).filter(a=>!s||a.name.toLowerCase().includes(s));
+    if(!grp.length) return;
+    html+=`<div class="wk-period-label">Period ${p}</div>`;
+    grp.forEach(a=>{
+      const v=participationData[a.id]||{}, tally=Object.keys(v).length, sc=partWeekScore(a.id, week);
+      const days=week.map(d=>{
+        const ds=isoOf(d), val=v[ds]||'';
+        return `<button class="day-btn${val?' pv-'+val:''}" onclick="cycleParticipation(${a.id},'${ds}')">
+          <span class="day-name">${dayName(d)}</span>
+          <span class="day-date">${d.getMonth()+1}/${d.getDate()}</span>
+          <span class="day-val">${val||'·'}</span>
+        </button>`;
+      }).join('');
+      html+=`<div class="wk-card">
+        <div class="wk-name-col">
+          <div class="wk-card-name">${a.name}</div>
+          <div class="wk-card-meta">Inc: ${tally}</div>
+        </div>
+        <div class="day-row">${days}</div>
+        <div class="wk-score" style="${scoreColor(sc)}">${sc}</div>
+      </div>`;
+    });
+  });
+  document.getElementById('part-list').innerHTML =
+    html || '<div class="text-sm" style="padding:14px;">No athletes match. Add athletes on the Roster tab.</div>';
+}
+
+function cycleParticipation(aid, ds){
+  if(!participationData[aid]) participationData[aid]={};
+  const cur=participationData[aid][ds]||'';
+  const next=PART_CYCLE[(PART_CYCLE.indexOf(cur)+1)%PART_CYCLE.length];
+  if(next) participationData[aid][ds]=next; else delete participationData[aid][ds];
+  persist();
+  renderParticipation();
 }
 
 // ── PAGE: ATTENDANCE ─────────────────────────────────────────────
@@ -1453,6 +1564,7 @@ function renderNotes(){
 // ── REPORTS (embedded in Dashboard View Mode) ────────────────────
 const ATT_LABELS = {P:'Present', A:'Absent', T:'Tardy', E:'Excused'};
 const DRESS_LABELS = {NS:'No Shirt', NP:'No Pants/Shorts', WP:'Wore Pants', NSH:'No Shoes'};
+const PART_LABELS = {LE:'Lack of Effort', CNP:'Choose Not to Participate'};
 
 // return true if dateISO is within [start,end]; blank bounds are open-ended
 function inRange(dateISO, start, end){
@@ -1485,6 +1597,13 @@ function buildAthleteReport(a, start, end, rangeLabel){
   dressDates.forEach(d=>{ const t=dressAll[d]; if(dressByType[t]!=null) dressByType[t]++; });
   const dressTotal = dressDates.length;
 
+  // ── PARTICIPATION (tally only) ──
+  const partAll = participationData[aid] || {};
+  const partDates = Object.keys(partAll).filter(d=>inRange(d,start,end)).sort();
+  const partByType = {LE:0,CNP:0};
+  partDates.forEach(d=>{ const t=partAll[d]; if(partByType[t]!=null) partByType[t]++; });
+  const partTotal = partDates.length;
+
   // ── PERFORMANCE DATABASE ──
   const perf = athEntries(aid).filter(e=>inRange(e.date,start,end));
 
@@ -1504,6 +1623,17 @@ function buildAthleteReport(a, start, end, rangeLabel){
         <div class="dress-type-list">${dressTypeInline}</div>
        </div>`
     : '<div class="rpt-empty">No dress-code violations in this range.</div>';
+
+  const partTypeInline = partTotal
+    ? Object.keys(partByType).filter(t=>partByType[t]>0)
+        .map(t=>`<span class="dress-type-item"><strong>${partByType[t]}×</strong> ${PART_LABELS[t]} (${t})</span>`).join('')
+    : '';
+  const partTally = partTotal
+    ? `<div class="dress-tally-line">
+        <div class="rpt-stat ${partTotal?'warn':''}" style="max-width:150px;"><div class="num">${partTotal}</div><div class="lbl">Total Incidents</div></div>
+        <div class="dress-type-list">${partTypeInline}</div>
+       </div>`
+    : '<div class="rpt-empty">No participation incidents in this range.</div>';
 
   const perfTable = perf.length
     ? `<table class="rpt-table"><thead><tr>
@@ -1598,6 +1728,11 @@ function buildAthleteReport(a, start, end, rangeLabel){
       </div>
 
       <div class="rpt-section">
+        <div class="rpt-section-title">Participation Incidents (Tally)</div>
+        ${partTally}
+      </div>
+
+      <div class="rpt-section">
         <div class="rpt-section-title">Performance Data</div>
         <div class="tbl-wrap">${perfTable}</div>
         ${perfChange}
@@ -1616,7 +1751,8 @@ function buildGroupSummary(list, start, end, rangeLabel, title){
   const att = {P:0,A:0,T:0,E:0};
   // ── aggregate dress ──
   const dress = {NS:0,NP:0,WP:0,NSH:0};
-  let totalTests = 0, athletesWithViolations = 0, totalNotes = 0, openNotes = 0;
+  const part = {LE:0,CNP:0};
+  let totalTests = 0, athletesWithViolations = 0, athletesWithPart = 0, totalNotes = 0, openNotes = 0;
 
   // per-athlete roll-up rows + running sums for performance averages
   const perfSum = {bw:0,flymph:0,jump:0,rsi:0,bsq:0,bench:0,tbdl:0,sbdl:0,m400:0};
@@ -1636,6 +1772,11 @@ function buildGroupSummary(list, start, end, rangeLabel, title){
     const dd = Object.keys(dv).filter(d=>inRange(d,start,end));
     dd.forEach(d=>{ if(dress[dv[d]]!=null){dress[dv[d]]++;} });
     if (dd.length) athletesWithViolations++;
+    // participation
+    const pv = participationData[aid] || {};
+    const pd = Object.keys(pv).filter(d=>inRange(d,start,end));
+    pd.forEach(d=>{ if(part[pv[d]]!=null){part[pv[d]]++;} });
+    if (pd.length) athletesWithPart++;
     // performance (latest test in range for averages)
     const perf = athEntries(aid).filter(e=>inRange(e.date,start,end));
     totalTests += perf.length;
@@ -1657,6 +1798,7 @@ function buildGroupSummary(list, start, end, rangeLabel, title){
       <td>${ac.T}</td><td>${ac.E}</td>
       <td>${rate==null?'—':rate+'%'}</td>
       <td class="${dd.length?'chg-dn':''}">${dd.length}</td>
+      <td class="${pd.length?'chg-dn':''}">${pd.length}</td>
       <td>${perf.length}</td>
       <td>${last?last.date:'—'}</td>
     </tr>`;
@@ -1665,6 +1807,7 @@ function buildGroupSummary(list, start, end, rangeLabel, title){
   const attMarked = att.P+att.A+att.T+att.E;
   const groupRate = attMarked ? Math.round(((att.P+att.T)/attMarked)*100) : null;
   const dressTotal = dress.NS+dress.NP+dress.WP+dress.NSH;
+  const partTotal = part.LE+part.CNP;
 
   const avg = k => perfCnt[k] ? (perfSum[k]/perfCnt[k]).toFixed(2) : '—';
 
@@ -1672,6 +1815,11 @@ function buildGroupSummary(list, start, end, rangeLabel, title){
     ? Object.keys(dress).filter(t=>dress[t]>0)
         .map(t=>`<span class="dress-type-item"><strong>${dress[t]}×</strong> ${DRESS_LABELS[t]} (${t})</span>`).join('')
     : '<span class="rpt-empty">No violations in this range.</span>';
+
+  const partInline = partTotal
+    ? Object.keys(part).filter(t=>part[t]>0)
+        .map(t=>`<span class="dress-type-item"><strong>${part[t]}×</strong> ${PART_LABELS[t]} (${t})</span>`).join('')
+    : '<span class="rpt-empty">No incidents in this range.</span>';
 
   return `
     <div class="rpt rpt-summary-block">
@@ -1705,6 +1853,15 @@ function buildGroupSummary(list, start, end, rangeLabel, title){
       </div>
 
       <div class="rpt-section">
+        <div class="rpt-section-title">Group Participation Incidents</div>
+        <div class="dress-tally-line">
+          <div class="rpt-stat ${partTotal?'warn':''}" style="max-width:150px;"><div class="num">${partTotal}</div><div class="lbl">Total Incidents</div></div>
+          <div class="rpt-stat" style="max-width:150px;"><div class="num">${athletesWithPart}</div><div class="lbl">Athletes w/ Incidents</div></div>
+          <div class="dress-type-list">${partInline}</div>
+        </div>
+      </div>
+
+      <div class="rpt-section">
         <div class="rpt-section-title">Group Performance Averages (most recent test per athlete)</div>
         <div class="tbl-wrap"><table class="rpt-table"><thead><tr>
           <th>&nbsp;</th><th>BW</th><th>Fly10 mph</th><th>Jump in</th><th>RSI</th>
@@ -1722,7 +1879,7 @@ function buildGroupSummary(list, start, end, rangeLabel, title){
         <div class="rpt-section-title">Per-Athlete Roll-Up</div>
         <div class="tbl-wrap"><table class="rpt-table"><thead><tr>
           <th>Athlete</th><th>Per.</th><th>Present</th><th>Absent</th><th>Tardy</th><th>Excused</th>
-          <th>Present %</th><th>Violations</th><th># Tests</th><th>Latest Test</th>
+          <th>Present %</th><th>Violations</th><th>Part.</th><th># Tests</th><th>Latest Test</th>
         </tr></thead><tbody>${rows}</tbody></table></div>
       </div>
     </div>`;
