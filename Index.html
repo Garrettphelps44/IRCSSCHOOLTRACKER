@@ -71,6 +71,33 @@
 
   td.db-name{font-weight:700;color:var(--navy);min-width:150px;}
   td.db-date{font-size:12px;color:var(--gray2);min-width:90px;}
+
+  /* frozen name column + collapsible previous test dates */
+  .db-tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .db-table{border-collapse:separate;border-spacing:0;width:max-content;min-width:100%;}
+  .db-table th.db-sticky-name,
+  .db-table td.db-name{
+    position:sticky;left:0;min-width:150px;max-width:180px;
+  }
+  .db-table th.db-sticky-name{
+    z-index:4;background:var(--navy);box-shadow:2px 0 6px rgba(0,0,0,.22);
+  }
+  .db-table td.db-name{
+    z-index:2;background:#fff;border-right:2px solid var(--border);
+    box-shadow:2px 0 6px rgba(0,18,48,.12);
+    overflow:hidden;text-overflow:ellipsis;
+  }
+  .db-sticky-label{position:sticky;left:12px;display:inline-block;}
+  tr.db-date-hdr{cursor:pointer;user-select:none;}
+  tr.db-date-hdr td{
+    background:#f0f2f5;font-weight:700;color:var(--navy);font-size:12px;
+    padding:8px 12px;border-bottom:1px solid var(--border);
+  }
+  tr.db-date-hdr.is-open td{background:#e8edf4;}
+  tr.db-date-hdr:hover td{background:#e4e7ee;}
+  .db-chevron{display:inline-block;width:14px;font-size:10px;margin-right:6px;color:var(--gray2);}
+  .db-date-meta{color:var(--gray2);font-weight:600;font-size:11px;letter-spacing:.2px;margin-left:8px;text-transform:none;}
+  .db-date-hidden{display:none;}
   td.calc{color:var(--navy);font-weight:700;background:#eef6f0;font-size:13px;}
 
   /* inline edit cell */
@@ -473,7 +500,7 @@
 <!-- PAGE 3: DATABASE -->
 <div id="page-database" class="page">
   <div class="page-title">Performance Database</div>
-  <div class="page-sub">Click any value cell to edit inline · Flying 10 MPH auto-calculates · Add a test date for a whole period at once</div>
+  <div class="page-sub">Click any value cell to edit inline · Flying 10 MPH auto-calculates · Previous test dates stay collapsed — click a date to expand · Name column stays visible as you scroll</div>
 
   <!-- ADD DATE BAR -->
   <div class="add-date-bar">
@@ -503,10 +530,10 @@
     </div>
   </div>
 
-  <div class="tbl-wrap">
-    <table>
+  <div class="tbl-wrap db-tbl-wrap">
+    <table class="db-table">
       <thead><tr>
-        <th style="min-width:150px;">Name</th>
+        <th class="db-sticky-name" style="min-width:150px;">Name</th>
         <th style="min-width:100px;">Date</th>
         <th>BW</th>
         <th>Fly10 sec</th>
@@ -1122,6 +1149,35 @@ function addPeriodDate() {
   setStatus('Test date added');
 }
 
+// User overrides for which test-date groups are expanded (default: only the latest date)
+const dbDateOpen = {};
+function dbDateKey(p, date){ return p+'|'+date; }
+function isDbDateOpen(p, date, isLatest){
+  const key = dbDateKey(p, date);
+  if (Object.prototype.hasOwnProperty.call(dbDateOpen, key)) return dbDateOpen[key];
+  return isLatest;
+}
+function toggleDbDate(p, date){
+  const key = dbDateKey(p, date);
+  const hdr = document.querySelector(`tr.db-date-hdr[data-db-key="${key}"]`);
+  const isLatest = hdr && hdr.dataset.latest === '1';
+  const open = !isDbDateOpen(p, date, isLatest);
+  dbDateOpen[key] = open;
+  document.querySelectorAll(`tr.db-data-row[data-db-key="${key}"]`).forEach(r => {
+    r.classList.toggle('db-date-hidden', !open);
+  });
+  if (hdr) {
+    hdr.classList.toggle('is-open', open);
+    const chev = hdr.querySelector('.db-chevron');
+    if (chev) chev.textContent = open ? '▼' : '▶';
+    const hint = hdr.querySelector('.db-date-meta');
+    if (hint) {
+      const n = hdr.dataset.count || '';
+      hint.textContent = open ? (n+' athlete'+(n==='1'?'':'s')) : (n+' athlete'+(n==='1'?'':'s')+' · click to expand');
+    }
+  }
+}
+
 // RENDER DATABASE TABLE
 function renderDB() {
   const pf = document.getElementById('db-period-filter').value;
@@ -1137,7 +1193,7 @@ function renderDB() {
     const allEntries = grp.flatMap(a => athEntries(a.id));
     if(!allEntries.length && s) return;
 
-    html += `<tr class="db-period-hdr"><td colspan="13">Period ${p}</td></tr>`;
+    html += `<tr class="db-period-hdr"><td colspan="13"><span class="db-sticky-label">Period ${p}</span></td></tr>`;
 
     if(!allEntries.length){
       html+=`<tr><td colspan="13" style="color:var(--gray2);font-size:12px;font-style:italic;padding:10px 14px;">
@@ -1145,21 +1201,29 @@ function renderDB() {
       return;
     }
 
-    // Get unique sorted dates across all athletes in this period
-    const dates = [...new Set(allEntries.map(e=>e.date))].sort();
+    // Newest test date first so previous dates sit collapsed underneath
+    const dates = [...new Set(allEntries.map(e=>e.date))].sort().reverse();
+    const latest = dates[0];
 
     dates.forEach(date=>{
-      // Date sub-header
-      html+=`<tr class="db-athlete-hdr"><td colspan="13" style="font-size:11px;letter-spacing:.5px;color:var(--gray2);padding:5px 12px;background:#f8f9fb;">
-        📅 ${date}</td></tr>`;
+      const isLatest = date === latest;
+      const open = isDbDateOpen(p, date, isLatest);
+      const key = dbDateKey(p, date);
+      const dateAthletes = grp.filter(a => testEntries.some(en=>en.athleteId===a.id && en.date===date));
+      const n = dateAthletes.length;
+      const meta = open
+        ? (n+' athlete'+(n===1?'':'s'))
+        : (n+' athlete'+(n===1?'':'s')+' · click to expand');
 
-      // All athletes for this period, in alpha order, showing their entry for this date
-      grp.forEach(a=>{
+      html+=`<tr class="db-date-hdr ${open?'is-open':''}" data-db-key="${key}" data-latest="${isLatest?'1':'0'}" data-count="${n}" onclick="toggleDbDate('${p}','${date}')">
+        <td colspan="13"><span class="db-sticky-label"><span class="db-chevron">${open?'▼':'▶'}</span>📅 ${date}${isLatest?' · Latest':''}<span class="db-date-meta">${meta}</span></span></td></tr>`;
+
+      dateAthletes.forEach(a=>{
         const e = testEntries.find(en=>en.athleteId===a.id && en.date===date);
-        if(!e) return; // athlete has no entry for this date
+        if(!e) return;
         const mph = flyToMPH(e.fly);
         total++;
-        html+=`<tr data-eid="${e.id}">
+        html+=`<tr class="db-data-row${open?'':' db-date-hidden'}" data-eid="${e.id}" data-db-key="${key}">
           <td class="db-name"><strong>${a.name}</strong></td>
           <td class="db-date">${e.date}</td>
           ${DB_KEYS.map(k=>{
@@ -1245,7 +1309,7 @@ function tabToNext(currentTd) {
   } else {
     // move to next data row
     let next = row.nextElementSibling;
-    while(next && (next.classList.contains('db-period-hdr')||next.classList.contains('db-athlete-hdr'))) next=next.nextElementSibling;
+    while(next && (next.classList.contains('db-period-hdr')||next.classList.contains('db-athlete-hdr')||next.classList.contains('db-date-hdr')||next.classList.contains('db-date-hidden'))) next=next.nextElementSibling;
     if(next){
       const firstEditable = next.querySelector('td.editable');
       if(firstEditable) firstEditable.click();
