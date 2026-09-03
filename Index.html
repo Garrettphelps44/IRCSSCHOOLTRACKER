@@ -212,6 +212,17 @@
             background:var(--green-bg);color:var(--green);white-space:nowrap;}
   .done-btn.is-done{background:var(--green);color:#fff;}
   .add-note-form{border-radius:10px;border:1.5px dashed var(--border);padding:20px;background:var(--white);}
+  .note-athlete-combo{position:relative;}
+  .note-athlete-combo input[type="text"]{width:100%;box-sizing:border-box;}
+  .note-athlete-dropdown{display:none;position:absolute;left:0;right:0;top:calc(100% + 4px);max-height:220px;
+    overflow-y:auto;background:#fff;border:1.5px solid var(--border);border-radius:7px;
+    box-shadow:0 8px 24px rgba(0,18,48,.12);z-index:50;}
+  .note-athlete-dropdown.open{display:block;}
+  .note-athlete-option{padding:9px 12px;font-size:13px;cursor:pointer;border-bottom:1px solid var(--border);}
+  .note-athlete-option:last-child{border-bottom:none;}
+  .note-athlete-option:hover,.note-athlete-option.active{background:var(--navy);color:#fff;}
+  .note-athlete-option.none{color:var(--gray2);cursor:default;font-style:italic;}
+  .note-athlete-option.none:hover{background:transparent;color:var(--gray2);}
 
   /* ── MODALS ── */
   .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,18,48,.5);z-index:200;align-items:center;justify-content:center;}
@@ -630,20 +641,16 @@
   <div class="add-note-form card" style="margin-bottom:20px;">
     <div class="card-title">New Note</div>
     <div class="field-row">
-      <div class="field"><label>Athlete</label><select id="note-athlete"><option value="">Select...</option></select></div>
-      <div class="field"><label>Date</label><input type="date" id="note-date"></div>
-      <div class="field" style="flex:2;"><label>Issue</label><input type="text" id="note-issue" placeholder="e.g. 3rd dress violation" style="width:100%;"></div>
-    </div>
-    <div class="field-row">
       <div class="field">
-        <label>Action</label>
-        <select id="note-action">
-          <option value="referral">Referral</option>
-          <option value="email">Parent Email</option>
-          <option value="both">Both</option>
-        </select>
+        <label>Athlete</label>
+        <div class="note-athlete-combo">
+          <input type="text" id="note-athlete-input" placeholder="Type name..." autocomplete="off" style="width:100%;">
+          <input type="hidden" id="note-athlete" value="">
+          <div class="note-athlete-dropdown" id="note-athlete-dropdown"></div>
+        </div>
       </div>
-      <div class="field" style="flex:2;"><label>Notes</label><input type="text" id="note-notes" placeholder="Optional detail..." style="width:100%;"></div>
+      <div class="field"><label>Date</label><input type="date" id="note-date"></div>
+      <div class="field" style="flex:2;"><label>Notes</label><input type="text" id="note-notes" placeholder="e.g. 3rd dress violation — referral sent" style="width:100%;"></div>
     </div>
     <button class="btn btn-primary" onclick="addNote()">Add Note</button>
   </div>
@@ -1576,25 +1583,90 @@ function renderClassView(){
 }
 
 // ── PAGE 5: NOTES ────────────────────────────────────────────────
+let noteAthleteComboInited=false;
 function populateNoteSelect(){
-  const s=[...athletes].sort((a,b)=>a.name.localeCompare(b.name));
-  document.getElementById('note-athlete').innerHTML=
-    '<option value="">Select...</option>'+s.map(a=>`<option value="${a.id}">${a.name}</option>`).join('');
   document.getElementById('note-date').value=new Date().toISOString().split('T')[0];
+  if(!noteAthleteComboInited){ initNoteAthleteCombo(); noteAthleteComboInited=true; }
+  clearNoteAthleteCombo();
+}
+function initNoteAthleteCombo(){
+  const input=document.getElementById('note-athlete-input');
+  const dropdown=document.getElementById('note-athlete-dropdown');
+  input.addEventListener('input',()=>{
+    const sel=document.getElementById('note-athlete').value;
+    if(sel){
+      const a=getAth(parseInt(sel));
+      if(!a||a.name!==input.value) document.getElementById('note-athlete').value='';
+    }
+    renderNoteAthleteDropdown(input.value.toLowerCase());
+    dropdown.classList.add('open');
+  });
+  input.addEventListener('focus',()=>{
+    renderNoteAthleteDropdown(input.value.toLowerCase());
+    dropdown.classList.add('open');
+  });
+  input.addEventListener('keydown',e=>{
+    const opts=[...dropdown.querySelectorAll('.note-athlete-option[data-id]')];
+    if(!opts.length) return;
+    const cur=dropdown.querySelector('.note-athlete-option.active');
+    let idx=cur?opts.indexOf(cur):-1;
+    if(e.key==='ArrowDown'){ e.preventDefault(); idx=Math.min(idx+1,opts.length-1); }
+    else if(e.key==='ArrowUp'){ e.preventDefault(); idx=Math.max(idx-1,0); }
+    else if(e.key==='Enter'&&cur){ e.preventDefault(); selectNoteAthlete(cur.dataset.id,cur.dataset.name); return; }
+    else if(e.key==='Escape'){ dropdown.classList.remove('open'); return; }
+    else return;
+    opts.forEach(o=>o.classList.remove('active'));
+    opts[idx].classList.add('active');
+    opts[idx].scrollIntoView({block:'nearest'});
+  });
+  document.addEventListener('click',e=>{
+    if(!e.target.closest('.note-athlete-combo')) dropdown.classList.remove('open');
+  });
+}
+function renderNoteAthleteDropdown(q=''){
+  const dropdown=document.getElementById('note-athlete-dropdown');
+  const list=[...athletes]
+    .filter(a=>!q||a.name.toLowerCase().includes(q))
+    .sort((a,b)=>a.name.localeCompare(b.name));
+  if(!list.length){
+    dropdown.innerHTML='<div class="note-athlete-option none">No matches</div>';
+    return;
+  }
+  dropdown.innerHTML=list.map(a=>
+    `<div class="note-athlete-option" data-id="${a.id}" data-name="${a.name.replace(/"/g,'&quot;')}">${a.name}</div>`
+  ).join('');
+  dropdown.querySelectorAll('.note-athlete-option[data-id]').forEach(el=>{
+    el.addEventListener('mousedown',e=>{
+      e.preventDefault();
+      selectNoteAthlete(el.dataset.id,el.dataset.name);
+    });
+  });
+}
+function selectNoteAthlete(id,name){
+  document.getElementById('note-athlete-input').value=name;
+  document.getElementById('note-athlete').value=id;
+  document.getElementById('note-athlete-dropdown').classList.remove('open');
+}
+function clearNoteAthleteCombo(){
+  document.getElementById('note-athlete-input').value='';
+  document.getElementById('note-athlete').value='';
+  const dropdown=document.getElementById('note-athlete-dropdown');
+  dropdown.classList.remove('open');
+  dropdown.innerHTML='';
 }
 function addNote(){
   const aid=parseInt(document.getElementById('note-athlete').value);
   const date=document.getElementById('note-date').value;
-  const issue=document.getElementById('note-issue').value.trim();
-  if(!aid||!date||!issue) return alert('Athlete, date, and issue required');
+  const text=document.getElementById('note-notes').value.trim();
+  if(!aid||!date||!text) return alert('Athlete, date, and notes required');
   notes.push({
-    id:nextId(), athleteId:aid, date, issue,
-    action:document.getElementById('note-action').value,
-    notes:document.getElementById('note-notes').value.trim(),
+    id:nextId(), athleteId:aid, date,
+    notes:text,
     done:false
   });
   persist();
-  ['note-issue','note-notes'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('note-notes').value='';
+  clearNoteAthleteCombo();
   renderNotes();
   setStatus('Note saved');
 }
@@ -1607,18 +1679,14 @@ function toggleNoteDone(id){
 }
 function renderNotes(){
   const sorted=[...notes].sort((a,b)=>a.done-b.done||a.date.localeCompare(b.date));
-  const labels={referral:'Referral',email:'Parent Email',both:'Both'};
   document.getElementById('notes-list').innerHTML=sorted.map(n=>{
     const a=getAth(n.athleteId);
+    const text=n.notes||n.issue||'';
     return `<div class="note-card ${n.done?'done-card':''}">
       <div>
         <div class="note-athlete">${a?a.name:'Unknown'}</div>
-        <div class="note-issue">${n.issue}</div>
-        <div class="note-meta">
-          <span>${n.date}</span>
-          <span class="note-action-badge ${n.action==='email'?'email':n.action==='both'?'both':''}">${labels[n.action]||n.action}</span>
-          ${n.notes?`<span>${n.notes}</span>`:''}
-        </div>
+        <div class="note-issue">${text}</div>
+        <div class="note-meta"><span>${n.date}</span></div>
       </div>
       <button class="done-btn ${n.done?'is-done':''}" onclick="toggleNoteDone(${n.id})">${n.done?'✓ Done':'Mark Done'}</button>
     </div>`;
@@ -1751,12 +1819,12 @@ function buildAthleteReport(a, start, end, rangeLabel){
   }
 
   // notes table
-  const noteLabels = {referral:'Referral', email:'Parent Email', both:'Both'};
   const notesTable = noteRows.length
-    ? `<table class="rpt-table"><thead><tr><th>Date</th><th>Issue</th><th>Action</th><th>Status</th><th>Notes</th></tr></thead><tbody>
+    ? `<table class="rpt-table"><thead><tr><th>Date</th><th>Status</th><th>Notes</th></tr></thead><tbody>
         ${noteRows.map(n=>`<tr>
-          <td>${n.date}</td><td>${n.issue}</td><td>${noteLabels[n.action]||n.action}</td>
-          <td>${n.done?'Done':'Open'}</td><td>${n.notes||'—'}</td>
+          <td>${n.date}</td>
+          <td>${n.done?'Done':'Open'}</td>
+          <td>${n.notes||n.issue||'—'}</td>
         </tr>`).join('')}
        </tbody></table>`
     : '<div class="rpt-empty">No notes in this range.</div>';
