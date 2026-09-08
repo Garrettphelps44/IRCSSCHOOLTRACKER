@@ -72,15 +72,32 @@
   td.db-name{font-weight:700;color:var(--navy);min-width:150px;}
   td.db-date{font-size:12px;color:var(--gray2);min-width:90px;}
 
-  /* frozen name column + collapsible previous test dates */
-  .db-tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  /* database page: keep add/filter bars visible, table scrolls underneath */
+  #page-database.page.active{
+    display:flex;flex-direction:column;
+    height:calc(100vh - 56px);max-height:calc(100vh - 56px);
+    padding-bottom:16px;overflow:hidden;
+  }
+  #page-database .page-title,
+  #page-database .page-sub,
+  #page-database .add-date-bar,
+  #page-database .card,
+  #page-database #db-count{flex-shrink:0;}
+  #page-database .db-tbl-wrap{flex:1;min-height:0;}
+
+  /* frozen test-name header + frozen name column + collapsible previous test dates */
+  .db-tbl-wrap{overflow:auto;-webkit-overflow-scrolling:touch;}
   .db-table{border-collapse:separate;border-spacing:0;width:max-content;min-width:100%;}
+  .db-table thead th{
+    position:sticky;top:0;z-index:5;
+    box-shadow:0 2px 8px rgba(0,0,0,.28);
+  }
   .db-table th.db-sticky-name,
   .db-table td.db-name{
     position:sticky;left:0;min-width:150px;max-width:180px;
   }
   .db-table th.db-sticky-name{
-    z-index:4;background:var(--navy);box-shadow:2px 0 6px rgba(0,0,0,.22);
+    z-index:8;top:0;left:0;background:var(--navy);box-shadow:2px 2px 8px rgba(0,0,0,.28);
   }
   .db-table td.db-name{
     z-index:2;background:#fff;border-right:2px solid var(--border);
@@ -99,6 +116,8 @@
   .db-date-meta{color:var(--gray2);font-weight:600;font-size:11px;letter-spacing:.2px;margin-left:8px;text-transform:none;}
   .db-date-hidden{display:none;}
   td.calc{color:var(--navy);font-weight:700;background:#eef6f0;font-size:13px;}
+  td.calc-90{color:#7a4500;font-weight:700;background:var(--yellow-bg);font-size:13px;}
+  .db-date-actions{margin-left:12px;vertical-align:middle;}
 
   /* inline edit cell */
   td.editable{cursor:pointer;position:relative;min-width:70px;}
@@ -511,7 +530,7 @@
 <!-- PAGE 3: DATABASE -->
 <div id="page-database" class="page">
   <div class="page-title">Performance Database</div>
-  <div class="page-sub">Click any value cell to edit inline · Flying 10 MPH auto-calculates · Previous test dates stay collapsed — click a date to expand · Name column stays visible as you scroll</div>
+  <div class="page-sub">Click any value cell to edit · Click the cell below (or press Enter) to move down without backing out · Column headers stay visible as you scroll · Flying 10 MPH and 90% of all-time auto-calculate</div>
 
   <!-- ADD DATE BAR -->
   <div class="add-date-bar">
@@ -526,7 +545,8 @@
       <input type="date" id="add-date-input" style="width:160px;">
     </div>
     <button class="btn btn-primary" onclick="addPeriodDate()">+ Add Test Date for Period</button>
-    <div class="text-sm" style="color:var(--gray);align-self:flex-end;">Creates blank rows for every athlete in that period on that date</div>
+    <button class="btn btn-ghost" onclick="deletePeriodDate()" style="color:#fff;border-color:rgba(255,255,255,.35);">Delete Test Date</button>
+    <div class="text-sm" style="color:var(--gray);align-self:flex-end;">Add creates blank rows for every athlete in that period · Delete removes that date for the whole period</div>
   </div>
 
   <!-- FILTER BAR -->
@@ -537,7 +557,7 @@
         <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option>
       </select>
       <input type="text" id="db-search" placeholder="Search name..." oninput="renderDB()" style="min-width:160px;flex:1;">
-      <div class="text-sm" style="align-self:center;">Click a cell to edit · Tab to next · Enter to confirm</div>
+      <div class="text-sm" style="align-self:center;">Click a cell to edit · Enter moves down · Tab moves right · Esc cancels</div>
     </div>
   </div>
 
@@ -549,6 +569,7 @@
         <th>BW</th>
         <th>Fly10 sec</th>
         <th style="background:#1a5c30;">Fly10 mph ↗</th>
+        <th style="background:#7a5c12;">90% of All-Time</th>
         <th>Jump (in)</th>
         <th>RSI</th>
         <th>Back Squat</th>
@@ -758,6 +779,32 @@ const perAths  = p   => athletes.filter(a => a.period === p).sort((a,b) => a.nam
 const athEntries = id => testEntries.filter(e => e.athleteId === id).sort((a,b) => a.date.localeCompare(b.date));
 const DB_KEYS  = ['bw','fly','jump','rsi','bsq','bench','tbdl','sbdl','m400'];
 const DB_LABELS= ['BW','Fly10 sec','Jump','RSI','Back Sq','Bench','Trap DL','Str DL','400m'];
+const DB_COLSPAN = 14; // name, date, bw, fly sec, fly mph, 90%, jump, rsi, bsq, bench, tbdl, sbdl, 400m, actions
+
+function allTimeBestFlyMPH(athleteId, overrideEid, overrideFly){
+  let best = null;
+  for (const e of testEntries){
+    if (e.athleteId !== athleteId) continue;
+    const fly = (overrideEid != null && e.id === overrideEid) ? overrideFly : e.fly;
+    const mph = parseFloat(flyToMPH(fly));
+    if (!Number.isFinite(mph)) continue;
+    if (best == null || mph > best) best = mph;
+  }
+  return best;
+}
+function fly90ofAllTime(athleteId, overrideEid, overrideFly){
+  const best = allTimeBestFlyMPH(athleteId, overrideEid, overrideFly);
+  return best == null ? null : (best * 0.9).toFixed(2);
+}
+function refreshAthleteFly90(athleteId, overrideEid, overrideFly){
+  const best = allTimeBestFlyMPH(athleteId, overrideEid, overrideFly);
+  const pct  = best == null ? null : (best * 0.9).toFixed(2);
+  const tip  = best == null ? '' : ('90% of all-time best ('+best+' mph)');
+  document.querySelectorAll(`#db-body tr.db-data-row[data-aid="${athleteId}"] td.db-fly90`).forEach(cell=>{
+    cell.textContent = pct || '—';
+    cell.title = tip;
+  });
+}
 
 // ── SHARED PERIOD ────────────────────────────────────────────────
 const PERIOD_FILTER_IDS = [
@@ -1174,7 +1221,7 @@ function markWeekPresent() {
 
 // ── PAGE 3: DATABASE ─────────────────────────────────────────────
 
-// ADD A TEST DATE FOR A WHOLE PERIOD
+// ADD / DELETE A TEST DATE FOR A WHOLE PERIOD
 function addPeriodDate() {
   const p    = document.getElementById('add-period-sel').value;
   const date = document.getElementById('add-date-input').value;
@@ -1190,6 +1237,25 @@ function addPeriodDate() {
   persist();
   setSelectedPeriod(p);
   setStatus('Test date added');
+}
+
+function deletePeriodDate() {
+  const p    = document.getElementById('add-period-sel').value;
+  const date = document.getElementById('add-date-input').value;
+  if (!date) return alert('Pick the test date to delete');
+  deleteTestDate(p, date);
+}
+
+function deleteTestDate(p, date){
+  const ids = new Set(perAths(p).map(a=>a.id));
+  const n = testEntries.filter(e => ids.has(e.athleteId) && e.date===date).length;
+  if (!n) return alert('No test on '+date+' for Period '+p);
+  if (!confirm('Delete the '+date+' test for Period '+p+' ('+n+' athlete'+(n===1?'':'s')+')? This cannot be undone.')) return;
+  testEntries = testEntries.filter(e => !(ids.has(e.athleteId) && e.date===date));
+  delete dbDateOpen[dbDateKey(p, date)];
+  persist();
+  renderDB();
+  setStatus('Test date deleted');
 }
 
 // User overrides for which test-date groups are expanded (default: only the latest date)
@@ -1223,9 +1289,11 @@ function toggleDbDate(p, date){
 
 // RENDER DATABASE TABLE
 function renderDB() {
+  if (dbEdit) commitDbEdit();
   const pf = document.getElementById('db-period-filter').value;
   const s  = (document.getElementById('db-search').value||'').toLowerCase();
   let html='', total=0;
+  dbEdit = null;
 
   PERIODS.forEach(p=>{
     if(pf && pf!==p) return;
@@ -1236,10 +1304,10 @@ function renderDB() {
     const allEntries = grp.flatMap(a => athEntries(a.id));
     if(!allEntries.length && s) return;
 
-    html += `<tr class="db-period-hdr"><td colspan="13"><span class="db-sticky-label">Period ${p}</span></td></tr>`;
+    html += `<tr class="db-period-hdr"><td colspan="${DB_COLSPAN}"><span class="db-sticky-label">Period ${p}</span></td></tr>`;
 
     if(!allEntries.length){
-      html+=`<tr><td colspan="13" style="color:var(--gray2);font-size:12px;font-style:italic;padding:10px 14px;">
+      html+=`<tr><td colspan="${DB_COLSPAN}" style="color:var(--gray2);font-size:12px;font-style:italic;padding:10px 14px;">
         No entries yet — use "+ Add Test Date" above</td></tr>`;
       return;
     }
@@ -1259,43 +1327,135 @@ function renderDB() {
         : (n+' athlete'+(n===1?'':'s')+' · click to expand');
 
       html+=`<tr class="db-date-hdr ${open?'is-open':''}" data-db-key="${key}" data-latest="${isLatest?'1':'0'}" data-count="${n}" onclick="toggleDbDate('${p}','${date}')">
-        <td colspan="13"><span class="db-sticky-label"><span class="db-chevron">${open?'▼':'▶'}</span>📅 ${date}${isLatest?' · Latest':''}<span class="db-date-meta">${meta}</span></span></td></tr>`;
+        <td colspan="${DB_COLSPAN}"><span class="db-sticky-label"><span class="db-chevron">${open?'▼':'▶'}</span>📅 ${date}${isLatest?' · Latest':''}<span class="db-date-meta">${meta}</span>
+          <button type="button" class="del-row-btn db-date-actions" onclick="event.stopPropagation(); deleteTestDate('${p}','${date}')">Delete test</button>
+        </span></td></tr>`;
 
       dateAthletes.forEach(a=>{
         const e = testEntries.find(en=>en.athleteId===a.id && en.date===date);
         if(!e) return;
         const mph = flyToMPH(e.fly);
+        const best = allTimeBestFlyMPH(a.id);
+        const pct90 = best == null ? null : (best * 0.9).toFixed(2);
+        const tip90 = best == null ? '' : ('90% of all-time best ('+best+' mph)');
         total++;
-        html+=`<tr class="db-data-row${open?'':' db-date-hidden'}" data-eid="${e.id}" data-db-key="${key}">
+        html+=`<tr class="db-data-row${open?'':' db-date-hidden'}" data-eid="${e.id}" data-aid="${a.id}" data-db-key="${key}">
           <td class="db-name"><strong>${a.name}</strong></td>
           <td class="db-date">${e.date}</td>
           ${DB_KEYS.map(k=>{
             if(k==='fly'){
-              return `<td class="editable" data-eid="${e.id}" data-key="fly" onclick="startEdit(this)">${fmtVal(e.fly)}</td>
-                      <td class="calc" id="mph-${e.id}">${mph||'—'}</td>`;
+              return `<td class="editable" data-eid="${e.id}" data-key="fly">${fmtVal(e.fly)}</td>
+                      <td class="calc" id="mph-${e.id}">${mph||'—'}</td>
+                      <td class="calc-90 db-fly90" id="fly90-${e.id}" title="${tip90}">${pct90||'—'}</td>`;
             }
-            return `<td class="editable" data-eid="${e.id}" data-key="${k}" onclick="startEdit(this)">${fmtVal(e[k])}</td>`;
+            return `<td class="editable" data-eid="${e.id}" data-key="${k}">${fmtVal(e[k])}</td>`;
           }).join('')}
-          <td><button class="del-row-btn" onclick="deleteEntry(${e.id})">✕</button></td>
+          <td><button type="button" class="del-row-btn" onclick="deleteEntry(${e.id})">✕</button></td>
         </tr>`;
       });
     });
   });
 
   document.getElementById('db-body').innerHTML = html ||
-    '<tr><td colspan="13" style="text-align:center;color:#aaa;padding:20px;">No entries — add a test date above</td></tr>';
+    `<tr><td colspan="${DB_COLSPAN}" style="text-align:center;color:#aaa;padding:20px;">No entries — add a test date above</td></tr>`;
   document.getElementById('db-count').textContent = total+' entries';
+  bindDbTableEvents();
 }
 
-// INLINE EDIT
+// INLINE EDIT — spreadsheet-style: click any cell (including the one below) without backing out first
+let dbEdit = null;
+
+function bindDbTableEvents(){
+  const wrap = document.querySelector('#page-database .db-tbl-wrap');
+  if (!wrap || wrap.dataset.bound) return;
+  wrap.dataset.bound = '1';
+  wrap.addEventListener('mousedown', ev=>{
+    if (ev.target.closest('button, a, select, textarea')) {
+      if (dbEdit) commitDbEdit();
+      return;
+    }
+    const td = ev.target.closest('td.editable');
+    if (td && wrap.contains(td)) {
+      if (td.classList.contains('editing')) return;
+      ev.preventDefault();
+      startEdit(td);
+      return;
+    }
+    if (dbEdit) commitDbEdit();
+  });
+}
+
+function visibleEditableCells(){
+  return Array.from(document.querySelectorAll('#db-body tr.db-data-row:not(.db-date-hidden) td.editable'));
+}
+function dbCellByDelta(td, dRow, dCol){
+  if (dCol !== 0) {
+    const all = visibleEditableCells();
+    const i = all.indexOf(td);
+    if (i < 0) return null;
+    return all[i + dCol] || null;
+  }
+  const row = td.closest('tr');
+  const rows = Array.from(document.querySelectorAll('#db-body tr.db-data-row:not(.db-date-hidden)'));
+  const r = rows.indexOf(row);
+  if (r < 0) return null;
+  const c = Array.from(row.querySelectorAll('td.editable')).indexOf(td);
+  if (c < 0) return null;
+  const next = rows[r + dRow];
+  if (!next) return null;
+  return next.querySelectorAll('td.editable')[c] || null;
+}
+
+function commitDbEdit(){
+  if (!dbEdit) return;
+  const { td, eid, key, orig, entry } = dbEdit;
+  const inp = td.querySelector('.cell-input');
+  if (!inp) {
+    td.classList.remove('editing');
+    dbEdit = null;
+    return;
+  }
+  const newVal = numOrNull(inp.value.trim());
+  if (entry) entry[key] = newVal;
+  persist();
+  td.classList.remove('editing');
+  td.classList.add('unsaved');
+  td.dataset.dirty = '1';
+  td.textContent = newVal!=null ? newVal : '—';
+  if (key==='fly' && entry) {
+    const mph = flyToMPH(newVal);
+    const mphCell = document.getElementById(`mph-${eid}`);
+    if (mphCell) mphCell.textContent = mph||'—';
+    refreshAthleteFly90(entry.athleteId);
+  }
+  markRowDirty(eid);
+  dbEdit = null;
+}
+
+function cancelDbEdit(){
+  if (!dbEdit) return;
+  const { td, orig, eid, key, entry } = dbEdit;
+  td.classList.remove('editing');
+  td.textContent = orig!=null ? orig : '—';
+  if (key==='fly' && entry) {
+    const mph = flyToMPH(orig);
+    const mphCell = document.getElementById(`mph-${eid}`);
+    if (mphCell) mphCell.textContent = mph||'—';
+    refreshAthleteFly90(entry.athleteId);
+  }
+  dbEdit = null;
+}
+
 function startEdit(td) {
-  if (td.classList.contains('editing')) return;
+  if (!td || td.classList.contains('editing')) return;
+  if (dbEdit && dbEdit.td !== td) commitDbEdit();
   const eid = parseInt(td.dataset.eid);
   const key = td.dataset.key;
   const entry = testEntries.find(e=>e.id===eid);
   if (!entry) return;
 
   const curVal = entry[key];
+  dbEdit = { td, eid, key, orig: curVal, entry };
   td.classList.add('editing');
   td.innerHTML = `<input class="cell-input" type="number" step="0.01"
     value="${curVal!=null?curVal:''}"
@@ -1308,56 +1468,37 @@ function startEdit(td) {
 
   if (key==='fly') {
     inp.addEventListener('input', ()=>{
-      const mph = flyToMPH(inp.value);
+      const liveFly = numOrNull(inp.value.trim());
+      const mph = flyToMPH(liveFly);
       const liveEl = document.getElementById(`fly-live-${eid}`);
       if(liveEl) liveEl.textContent = mph ? '→ '+mph+' mph' : '';
-      // also update the adjacent mph cell live
       const mphCell = document.getElementById(`mph-${eid}`);
       if(mphCell) mphCell.textContent = mph||'—';
+      refreshAthleteFly90(entry.athleteId, eid, liveFly);
     });
   }
 
-  const commit = () => {
-    const rawVal = inp.value.trim();
-    const newVal = rawVal===''?null:parseFloat(rawVal);
-    entry[key] = newVal;
-    persist();
-    td.classList.remove('editing');
-    td.classList.add('unsaved');
-    td.dataset.dirty = '1';
-    td.textContent = newVal!=null ? newVal : '—';
-    if (key==='fly') {
-      const mph = flyToMPH(newVal);
-      const mphCell = document.getElementById(`mph-${eid}`);
-      if(mphCell){ mphCell.textContent = mph||'—'; }
-    }
-    // mark row as having unsaved changes — show save indicator
-    markRowDirty(eid);
-  };
-
   inp.addEventListener('keydown', ev=>{
-    if (ev.key==='Enter'||ev.key==='Tab') { ev.preventDefault(); commit(); if(ev.key==='Tab') tabToNext(td); }
-    if (ev.key==='Escape') { td.classList.remove('editing'); td.textContent=curVal!=null?curVal:'—'; }
-  });
-  inp.addEventListener('blur', ()=>{ if(td.classList.contains('editing')) commit(); });
-}
-
-function tabToNext(currentTd) {
-  // find next editable td in same row, then wrap to first of next row
-  const row = currentTd.closest('tr');
-  const allEditable = Array.from(row.querySelectorAll('td.editable'));
-  const idx = allEditable.indexOf(currentTd);
-  if (idx < allEditable.length-1) {
-    allEditable[idx+1].click();
-  } else {
-    // move to next data row
-    let next = row.nextElementSibling;
-    while(next && (next.classList.contains('db-period-hdr')||next.classList.contains('db-athlete-hdr')||next.classList.contains('db-date-hdr')||next.classList.contains('db-date-hidden'))) next=next.nextElementSibling;
-    if(next){
-      const firstEditable = next.querySelector('td.editable');
-      if(firstEditable) firstEditable.click();
+    if (ev.key==='Enter') {
+      ev.preventDefault();
+      const next = dbCellByDelta(td, ev.shiftKey ? -1 : 1, 0);
+      commitDbEdit();
+      if (next) startEdit(next);
+    } else if (ev.key==='Tab') {
+      ev.preventDefault();
+      const next = dbCellByDelta(td, 0, ev.shiftKey ? -1 : 1);
+      commitDbEdit();
+      if (next) startEdit(next);
+    } else if (ev.key==='Escape') {
+      ev.preventDefault();
+      cancelDbEdit();
     }
-  }
+  });
+  inp.addEventListener('blur', ()=>{
+    setTimeout(()=>{
+      if (dbEdit && dbEdit.td === td) commitDbEdit();
+    }, 0);
+  });
 }
 
 function markRowDirty(eid) {
@@ -2131,6 +2272,7 @@ document.getElementById('add-date-input').value = new Date().toISOString().split
     syncPeriodSelects();
     renderRoster();
   }
+  bindDbTableEvents();
 })();
 </script>
 </body>
