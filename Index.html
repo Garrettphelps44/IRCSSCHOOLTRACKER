@@ -117,7 +117,22 @@
   .db-date-hidden{display:none;}
   td.calc{color:var(--navy);font-weight:700;background:#eef6f0;font-size:13px;}
   td.calc-90{color:#7a4500;font-weight:700;background:var(--yellow-bg);font-size:13px;}
-  .db-date-actions{margin-left:12px;vertical-align:middle;}
+  .db-th-test{white-space:nowrap;}
+  .db-th-x{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:16px;height:16px;margin-left:5px;padding:0;vertical-align:middle;
+    background:transparent;border:none;border-radius:3px;cursor:pointer;
+    color:rgba(255,255,255,.55);font-size:12px;line-height:1;font-weight:700;
+    text-transform:none;letter-spacing:0;
+  }
+  .db-th-x:hover{color:#fff;background:rgba(200,48,43,.85);}
+  .db-add-test-btn{
+    display:inline-flex;align-items:center;gap:4px;
+    background:rgba(255,255,255,.12);color:#fff;border:1px dashed rgba(255,255,255,.45);
+    border-radius:5px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;
+    text-transform:none;letter-spacing:0;white-space:nowrap;
+  }
+  .db-add-test-btn:hover{background:rgba(255,255,255,.22);}
 
   /* inline edit cell */
   td.editable{cursor:pointer;position:relative;min-width:70px;}
@@ -530,7 +545,7 @@
 <!-- PAGE 3: DATABASE -->
 <div id="page-database" class="page">
   <div class="page-title">Performance Database</div>
-  <div class="page-sub">Click any value cell to edit · Click the cell below (or press Enter) to move down without backing out · Column headers stay visible as you scroll · Flying 10 MPH and 90% of all-time auto-calculate</div>
+  <div class="page-sub">Click any value cell to edit · Click the cell below (or press Enter) to move down · Column headers stay visible as you scroll · ✕ a test name to remove that column · + Add test next to 400m adds a new column</div>
 
   <!-- ADD DATE BAR -->
   <div class="add-date-bar">
@@ -545,8 +560,7 @@
       <input type="date" id="add-date-input" style="width:160px;">
     </div>
     <button class="btn btn-primary" onclick="addPeriodDate()">+ Add Test Date for Period</button>
-    <button class="btn btn-ghost" onclick="deletePeriodDate()" style="color:#fff;border-color:rgba(255,255,255,.35);">Delete Test Date</button>
-    <div class="text-sm" style="color:var(--gray);align-self:flex-end;">Add creates blank rows for every athlete in that period · Delete removes that date for the whole period</div>
+    <div class="text-sm" style="color:var(--gray);align-self:flex-end;">Creates blank rows for every athlete in that period on that date · Add or remove test columns with ✕ / + Add test in the table header</div>
   </div>
 
   <!-- FILTER BAR -->
@@ -563,7 +577,7 @@
 
   <div class="tbl-wrap db-tbl-wrap">
     <table class="db-table">
-      <thead><tr>
+      <thead><tr id="db-head-row">
         <th class="db-sticky-name" style="min-width:150px;">Name</th>
         <th style="min-width:100px;">Date</th>
         <th>BW</th>
@@ -577,7 +591,7 @@
         <th>Trap DL</th>
         <th>Str DL</th>
         <th>400m</th>
-        <th style="min-width:90px;"></th>
+        <th style="min-width:110px;"><button type="button" class="db-add-test-btn" onclick="addDbTest()">+ Add test</button></th>
       </tr></thead>
       <tbody id="db-body"></tbody>
     </table>
@@ -711,6 +725,7 @@ let dressData = {};
 let attendanceData = {};
 let participationData = {};
 let notes = [];
+let dbTests = [];
 let _seq = 1; // auto-increment id source (unique across all records)
 
 function nextId(){ return _seq++; }
@@ -735,7 +750,7 @@ function setStatus(msg, isErr){
 function persist(){
   try{
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      seq:_seq, athletes, testEntries, dressData, attendanceData, participationData, notes
+      seq:_seq, athletes, testEntries, dressData, attendanceData, participationData, notes, dbTests
     }));
   }catch(e){
     console.error(e);
@@ -755,17 +770,22 @@ function loadAll(){
       attendanceData    = d.attendanceData && typeof d.attendanceData==='object' ? d.attendanceData : {};
       participationData = d.participationData && typeof d.participationData==='object' ? d.participationData : {};
       notes             = Array.isArray(d.notes) ? d.notes : [];
+      dbTests           = normalizeDbTests(d.dbTests);
       // restore id counter above every existing id so new ids stay unique
       const maxId = Math.max(0,
         ...athletes.map(a=>a.id||0),
         ...testEntries.map(e=>e.id||0),
         ...notes.map(n=>n.id||0));
       _seq = Number.isFinite(d.seq) ? Math.max(d.seq, maxId+1) : maxId+1;
+    } else {
+      dbTests = defaultDbTests();
     }
+    if (!dbTests.length) dbTests = defaultDbTests();
     setStatus('Loaded from local storage');
     return true;
   }catch(e){
     console.error(e);
+    dbTests = defaultDbTests();
     setStatus('Failed to load local data', true);
     return false;
   }
@@ -774,12 +794,86 @@ function loadAll(){
 // ── UTILS ────────────────────────────────────────────────────────
 const flyToMPH = sec => (!sec || isNaN(sec) || +sec <= 0) ? null : (20.4545 / +sec).toFixed(2);
 const fmtVal   = v   => (v == null || v === '') ? '—' : v;
+const escHtml  = s   => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const getAth   = id  => athletes.find(a => a.id === id);
 const perAths  = p   => athletes.filter(a => a.period === p).sort((a,b) => a.name.localeCompare(b.name));
 const athEntries = id => testEntries.filter(e => e.athleteId === id).sort((a,b) => a.date.localeCompare(b.date));
-const DB_KEYS  = ['bw','fly','jump','rsi','bsq','bench','tbdl','sbdl','m400'];
-const DB_LABELS= ['BW','Fly10 sec','Jump','RSI','Back Sq','Bench','Trap DL','Str DL','400m'];
-const DB_COLSPAN = 14; // name, date, bw, fly sec, fly mph, 90%, jump, rsi, bsq, bench, tbdl, sbdl, 400m, actions
+
+const DEFAULT_DB_TESTS = [
+  {key:'bw',    label:'BW'},
+  {key:'fly',   label:'Fly10 sec'},
+  {key:'jump',  label:'Jump (in)'},
+  {key:'rsi',   label:'RSI'},
+  {key:'bsq',   label:'Back Squat'},
+  {key:'bench', label:'Bench'},
+  {key:'tbdl',  label:'Trap DL'},
+  {key:'sbdl',  label:'Str DL'},
+  {key:'m400',  label:'400m'},
+];
+function defaultDbTests(){ return DEFAULT_DB_TESTS.map(t => ({key:t.key, label:t.label})); }
+function normalizeDbTests(list){
+  if (!Array.isArray(list) || !list.length) return defaultDbTests();
+  const seen = new Set();
+  const out = [];
+  list.forEach(t=>{
+    if (!t || typeof t.key!=='string' || typeof t.label!=='string') return;
+    const key = t.key.trim();
+    const label = t.label.trim();
+    if (!key || !label || seen.has(key)) return;
+    seen.add(key);
+    out.push({key, label});
+  });
+  return out.length ? out : defaultDbTests();
+}
+function dbTestColCount(t){ return t.key === 'fly' ? 3 : 1; }
+function dbColSpan(){
+  return 2 + dbTests.reduce((n,t)=> n + dbTestColCount(t), 0) + 1;
+}
+function renderDBHead(){
+  const row = document.getElementById('db-head-row');
+  if (!row) return;
+  let html = `<th class="db-sticky-name" style="min-width:150px;">Name</th>
+    <th style="min-width:100px;">Date</th>`;
+  dbTests.forEach(t=>{
+    const x = `<button type="button" class="db-th-x" title="Delete ${escHtml(t.label)}" onclick="deleteDbTest('${t.key}')">✕</button>`;
+    if (t.key==='fly'){
+      html += `<th class="db-th-test">Fly10 sec ${x}</th>
+        <th style="background:#1a5c30;">Fly10 mph ↗</th>
+        <th style="background:#7a5c12;">90% of All-Time</th>`;
+    } else {
+      html += `<th class="db-th-test">${escHtml(t.label)} ${x}</th>`;
+    }
+  });
+  html += `<th style="min-width:110px;"><button type="button" class="db-add-test-btn" onclick="addDbTest()">+ Add test</button></th>`;
+  row.innerHTML = html;
+}
+function addDbTest(){
+  const label = (prompt('Name of the new test:') || '').trim();
+  if (!label) return;
+  if (dbTests.some(t => t.label.toLowerCase()===label.toLowerCase()))
+    return alert('That test is already in the table');
+  const restored = DEFAULT_DB_TESTS.find(t =>
+    t.label.toLowerCase()===label.toLowerCase() && !dbTests.some(x=>x.key===t.key)
+  );
+  if (restored) dbTests.push({key:restored.key, label:restored.label});
+  else dbTests.push({key:'c_'+nextId(), label});
+  persist();
+  renderDB();
+  setStatus('Test added');
+}
+function deleteDbTest(key){
+  const t = dbTests.find(x=>x.key===key);
+  if (!t) return;
+  if (!confirm('Delete the "'+t.label+'" column from the database table?')) return;
+  dbTests = dbTests.filter(x=>x.key!==key);
+  const builtin = DEFAULT_DB_TESTS.some(d=>d.key===key);
+  if (!builtin){
+    testEntries.forEach(e => { delete e[key]; });
+  }
+  persist();
+  renderDB();
+  setStatus('Test deleted');
+}
 
 function allTimeBestFlyMPH(athleteId, overrideEid, overrideFly){
   let best = null;
@@ -1221,7 +1315,7 @@ function markWeekPresent() {
 
 // ── PAGE 3: DATABASE ─────────────────────────────────────────────
 
-// ADD / DELETE A TEST DATE FOR A WHOLE PERIOD
+// ADD A TEST DATE FOR A WHOLE PERIOD
 function addPeriodDate() {
   const p    = document.getElementById('add-period-sel').value;
   const date = document.getElementById('add-date-input').value;
@@ -1237,25 +1331,6 @@ function addPeriodDate() {
   persist();
   setSelectedPeriod(p);
   setStatus('Test date added');
-}
-
-function deletePeriodDate() {
-  const p    = document.getElementById('add-period-sel').value;
-  const date = document.getElementById('add-date-input').value;
-  if (!date) return alert('Pick the test date to delete');
-  deleteTestDate(p, date);
-}
-
-function deleteTestDate(p, date){
-  const ids = new Set(perAths(p).map(a=>a.id));
-  const n = testEntries.filter(e => ids.has(e.athleteId) && e.date===date).length;
-  if (!n) return alert('No test on '+date+' for Period '+p);
-  if (!confirm('Delete the '+date+' test for Period '+p+' ('+n+' athlete'+(n===1?'':'s')+')? This cannot be undone.')) return;
-  testEntries = testEntries.filter(e => !(ids.has(e.athleteId) && e.date===date));
-  delete dbDateOpen[dbDateKey(p, date)];
-  persist();
-  renderDB();
-  setStatus('Test date deleted');
 }
 
 // User overrides for which test-date groups are expanded (default: only the latest date)
@@ -1290,6 +1365,8 @@ function toggleDbDate(p, date){
 // RENDER DATABASE TABLE
 function renderDB() {
   if (dbEdit) commitDbEdit();
+  renderDBHead();
+  const span = dbColSpan();
   const pf = document.getElementById('db-period-filter').value;
   const s  = (document.getElementById('db-search').value||'').toLowerCase();
   let html='', total=0;
@@ -1304,10 +1381,10 @@ function renderDB() {
     const allEntries = grp.flatMap(a => athEntries(a.id));
     if(!allEntries.length && s) return;
 
-    html += `<tr class="db-period-hdr"><td colspan="${DB_COLSPAN}"><span class="db-sticky-label">Period ${p}</span></td></tr>`;
+    html += `<tr class="db-period-hdr"><td colspan="${span}"><span class="db-sticky-label">Period ${p}</span></td></tr>`;
 
     if(!allEntries.length){
-      html+=`<tr><td colspan="${DB_COLSPAN}" style="color:var(--gray2);font-size:12px;font-style:italic;padding:10px 14px;">
+      html+=`<tr><td colspan="${span}" style="color:var(--gray2);font-size:12px;font-style:italic;padding:10px 14px;">
         No entries yet — use "+ Add Test Date" above</td></tr>`;
       return;
     }
@@ -1327,9 +1404,7 @@ function renderDB() {
         : (n+' athlete'+(n===1?'':'s')+' · click to expand');
 
       html+=`<tr class="db-date-hdr ${open?'is-open':''}" data-db-key="${key}" data-latest="${isLatest?'1':'0'}" data-count="${n}" onclick="toggleDbDate('${p}','${date}')">
-        <td colspan="${DB_COLSPAN}"><span class="db-sticky-label"><span class="db-chevron">${open?'▼':'▶'}</span>📅 ${date}${isLatest?' · Latest':''}<span class="db-date-meta">${meta}</span>
-          <button type="button" class="del-row-btn db-date-actions" onclick="event.stopPropagation(); deleteTestDate('${p}','${date}')">Delete test</button>
-        </span></td></tr>`;
+        <td colspan="${span}"><span class="db-sticky-label"><span class="db-chevron">${open?'▼':'▶'}</span>📅 ${date}${isLatest?' · Latest':''}<span class="db-date-meta">${meta}</span></span></td></tr>`;
 
       dateAthletes.forEach(a=>{
         const e = testEntries.find(en=>en.athleteId===a.id && en.date===date);
@@ -1342,13 +1417,13 @@ function renderDB() {
         html+=`<tr class="db-data-row${open?'':' db-date-hidden'}" data-eid="${e.id}" data-aid="${a.id}" data-db-key="${key}">
           <td class="db-name"><strong>${a.name}</strong></td>
           <td class="db-date">${e.date}</td>
-          ${DB_KEYS.map(k=>{
-            if(k==='fly'){
+          ${dbTests.map(t=>{
+            if(t.key==='fly'){
               return `<td class="editable" data-eid="${e.id}" data-key="fly">${fmtVal(e.fly)}</td>
                       <td class="calc" id="mph-${e.id}">${mph||'—'}</td>
                       <td class="calc-90 db-fly90" id="fly90-${e.id}" title="${tip90}">${pct90||'—'}</td>`;
             }
-            return `<td class="editable" data-eid="${e.id}" data-key="${k}">${fmtVal(e[k])}</td>`;
+            return `<td class="editable" data-eid="${e.id}" data-key="${t.key}">${fmtVal(e[t.key])}</td>`;
           }).join('')}
           <td><button type="button" class="del-row-btn" onclick="deleteEntry(${e.id})">✕</button></td>
         </tr>`;
@@ -1357,7 +1432,7 @@ function renderDB() {
   });
 
   document.getElementById('db-body').innerHTML = html ||
-    `<tr><td colspan="${DB_COLSPAN}" style="text-align:center;color:#aaa;padding:20px;">No entries — add a test date above</td></tr>`;
+    `<tr><td colspan="${span}" style="text-align:center;color:#aaa;padding:20px;">No entries — add a test date above</td></tr>`;
   document.getElementById('db-count').textContent = total+' entries';
   bindDbTableEvents();
 }
