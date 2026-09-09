@@ -200,6 +200,13 @@
   .player-meta{color:var(--gray2);font-size:12px;margin-top:6px;line-height:1.7;}
   .player-sport{display:inline-block;background:var(--crimson);color:#fff;font-size:10px;font-weight:700;
                 letter-spacing:.8px;text-transform:uppercase;padding:3px 12px;border-radius:20px;margin-top:12px;}
+  .player-compare{margin-top:16px;text-align:left;}
+  .player-compare label{color:rgba(255,255,255,.55);margin-bottom:3px;}
+  .player-compare select{
+    width:100%;background:#0d2750;border-color:#1a4070;color:#fff;margin-bottom:10px;
+  }
+  .player-compare select option{background:#001230;color:#fff;}
+  .player-compare-hint{font-size:10px;color:rgba(255,255,255,.4);line-height:1.4;margin-top:-2px;}
   .player-right{background:#fff;padding:20px 22px;}
   .stat-table{width:100%;border-collapse:collapse;}
   .stat-table th{background:#f4f5f7;color:var(--gray2);font-size:10px;letter-spacing:.7px;text-transform:uppercase;
@@ -267,8 +274,9 @@
   /* ── LEADERBOARD ── */
   td.lb-gold { background:#fffbe6; color:#7a4500; font-weight:700; }
   td.lb-gold::after { content:" 🥇"; font-size:11px; }
-  td.lb-val { text-align:center; font-size:13px; }
-  td.lb-metric { font-weight:700; color:var(--navy); font-family:"Bookman Old Style",Georgia,serif; }
+  td.lb-val { text-align:center; font-size:12px; }
+  td.lb-metric { font-weight:700; color:var(--navy); font-family:"Bookman Old Style",Georgia,serif; white-space:nowrap; }
+  #leaderboard-table { min-width:960px; }
   tr.lb-row:hover td { background:#f7f9fc; }
   tr.lb-row td.lb-gold { background:#fffbe6 !important; }
 
@@ -609,16 +617,14 @@
     <div class="card-title">🏆 Period Leaderboard — Average Per Test Date</div>
     <div class="text-sm" style="margin-bottom:14px;color:var(--gray2);">
       Each period's avg is the mean of its most recent test date per athlete.
+      Columns cover <strong>all periods (1–8)</strong>.
       <strong style="color:var(--crimson);">Gold</strong> = best class for that metric.
     </div>
     <div class="tbl-wrap">
       <table id="leaderboard-table">
         <thead>
-          <tr>
+          <tr id="leaderboard-head">
             <th>Metric</th>
-            <th id="lb-hdr-1" style="text-align:center;">Period 1</th>
-            <th id="lb-hdr-2" style="text-align:center;">Period 2</th>
-            <th id="lb-hdr-8" style="text-align:center;">Period 8</th>
           </tr>
         </thead>
         <tbody id="leaderboard-body"></tbody>
@@ -795,9 +801,16 @@ function loadAll(){
 const flyToMPH = sec => (!sec || isNaN(sec) || +sec <= 0) ? null : (20.4545 / +sec).toFixed(2);
 const fmtVal   = v   => (v == null || v === '') ? '—' : v;
 const escHtml  = s   => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const getAth   = id  => athletes.find(a => a.id === id);
-const perAths  = p   => athletes.filter(a => a.period === p).sort((a,b) => a.name.localeCompare(b.name));
-const athEntries = id => testEntries.filter(e => e.athleteId === id).sort((a,b) => a.date.localeCompare(b.date));
+const idsEqual = (a,b) => a!=null && b!=null && String(a)===String(b);
+const getAth   = id  => athletes.find(a => idsEqual(a.id, id));
+const perAths  = p   => athletes.filter(a => String(a.period)===String(p)).sort((a,b) => a.name.localeCompare(b.name));
+const athEntries = id => testEntries.filter(e => idsEqual(e.athleteId, id))
+  .sort((a,b) => String(a.date||'').localeCompare(String(b.date||'')));
+const toNum = v => {
+  if (v==null || v==='') return null;
+  const n = parseFloat(v);
+  return Number.isFinite(n) ? n : null;
+};
 
 const DEFAULT_DB_TESTS = [
   {key:'bw',    label:'BW'},
@@ -1657,7 +1670,6 @@ function saveAllQuickLog(){
 function clearQuickLog(){ renderQuickLog(); }
 
 // ── PAGE 4: LEADERBOARD ─────────────────────────────────────────
-const LB_PERIODS = ['1','2','8'];
 const LB_METRICS = [
   {key:'bw',    label:'Body Weight (lbs)',  higherBetter:true},
   {key:'fly',   label:'Flying 10 (mph)',    higherBetter:true, calc:e=>flyToMPH(e.fly)},
@@ -1677,31 +1689,28 @@ function periodAvg(p, metricKey, calc) {
     const last = entries[entries.length - 1];
     if (!last) return null;
     const v = calc ? calc(last) : last[metricKey];
-    return (v == null || v === '') ? null : parseFloat(v);
+    return toNum(v);
   }).filter(v => v != null);
   if (!vals.length) return null;
   return (vals.reduce((s,v) => s+v, 0) / vals.length).toFixed(2);
 }
 
 function renderLeaderboard() {
-  // Update period headers with athlete count
-  LB_PERIODS.forEach(p => {
-    const hdr = document.getElementById(`lb-hdr-${p}`);
-    if (hdr) {
+  const head = document.getElementById('leaderboard-head');
+  if (head) {
+    head.innerHTML = `<th>Metric</th>` + PERIODS.map(p => {
       const n = perAths(p).length;
-      hdr.innerHTML = `Period ${p}<br><span style="font-size:10px;font-weight:400;opacity:.75;">${n} athletes</span>`;
-    }
-  });
+      return `<th style="text-align:center;">Period ${p}<br><span style="font-size:10px;font-weight:400;opacity:.75;">${n} athletes</span></th>`;
+    }).join('');
+  }
 
   const tbody = document.getElementById('leaderboard-body');
   if (!tbody) return;
 
   let html = '';
   LB_METRICS.forEach(m => {
-    // compute avg for each leaderboard period
-    const avgs = LB_PERIODS.map(p => periodAvg(p, m.key, m.calc));
+    const avgs = PERIODS.map(p => periodAvg(p, m.key, m.calc));
 
-    // find best (non-null) value
     const nonNull = avgs.map((v,i) => v!=null ? {v:parseFloat(v),i} : null).filter(Boolean);
     let bestIdx = null;
     if (nonNull.length) {
@@ -1737,12 +1746,17 @@ const METRICS=[
   {key:'sbdl',  label:'Str Bar DL',       higherBetter:true},
   {key:'m400',  label:'400m (sec)',        higherBetter:false},
 ];
-const getVal=(e,m)=>{ if(!e) return null; if(m.calc) return m.calc(e); const v=e[m.key]; return v==null?null:v; };
+const getVal=(e,m)=>{ if(!e) return null; if(m.calc) return m.calc(e); const v=e[m.key]; return (v==null||v==='')?null:v; };
+
+let dashCmp = { aid:null, d1:'', d2:'' };
 
 function populateDashSelects(){
+  const sel=document.getElementById('dash-athlete');
+  const prev=sel.value;
   const s=[...athletes].sort((a,b)=>a.period.localeCompare(b.period)||a.name.localeCompare(b.name));
-  document.getElementById('dash-athlete').innerHTML=
+  sel.innerHTML=
     s.map(a=>`<option value="${a.id}">P${a.period} — ${a.name}</option>`).join('');
+  if (prev && [...sel.options].some(o=>o.value===prev)) sel.value=prev;
   renderLeaderboard();
 }
 function toggleDashMode(){
@@ -1765,20 +1779,42 @@ function renderDashboard(){
   else if(m==='class') renderClassView();
   else generateReport(); // report-athlete | report-period | report-all
 }
+function dashDateOptions(dates, selected){
+  if (!dates.length) return '<option value="">No test dates</option>';
+  return dates.map(d=>`<option value="${escHtml(d)}" ${d===selected?'selected':''}>${escHtml(d)}</option>`).join('');
+}
+function setDashCompare(which, val){
+  dashCmp[which] = val;
+  renderAthleteCard();
+}
 function renderAthleteCard(){
-  const aid=parseInt(document.getElementById('dash-athlete').value);
+  const aid=document.getElementById('dash-athlete').value;
   const a=getAth(aid);
   if(!a){document.getElementById('dash-output').innerHTML='<div class="card">No athlete selected.</div>';return;}
   const entries=athEntries(aid);
-  const prev=entries[entries.length-2]||null, curr=entries[entries.length-1]||null;
-  const d1=prev?prev.date:'—', d2=curr?curr.date:'—';
+  const dates=[...new Set(entries.map(e=>e.date).filter(Boolean))];
+
+  if (!idsEqual(dashCmp.aid, aid)) {
+    dashCmp.aid = aid;
+    dashCmp.d1 = dates.length>=2 ? dates[dates.length-2] : (dates[0]||'');
+    dashCmp.d2 = dates[dates.length-1]||'';
+  }
+  if (dashCmp.d1 && !dates.includes(dashCmp.d1))
+    dashCmp.d1 = dates.length>=2 ? dates[dates.length-2] : (dates[0]||'');
+  if (dashCmp.d2 && !dates.includes(dashCmp.d2))
+    dashCmp.d2 = dates[dates.length-1]||'';
+
+  const prev=entries.find(e=>e.date===dashCmp.d1)||null;
+  const curr=entries.find(e=>e.date===dashCmp.d2)||null;
+  const d1=dashCmp.d1||'—', d2=dashCmp.d2||'—';
   const rows=METRICS.map(m=>{
     const v1=getVal(prev,m), v2=getVal(curr,m);
     let delta='—',dClass='delta-neu',v2cls='';
-    if(v1!=null&&v2!=null){
-      const diff=parseFloat(v2)-parseFloat(v1);
+    const n1=toNum(v1), n2=toNum(v2);
+    if(n1!=null&&n2!=null){
+      const diff=n2-n1;
       const better=m.higherBetter?diff>0:diff<0, worse=m.higherBetter?diff<0:diff>0;
-      delta=(diff>0?'▲ ':'▼ ')+Math.abs(diff).toFixed(2);
+      delta=(diff>0?'▲ ':diff<0?'▼ ':'')+(diff===0?'no change':Math.abs(diff).toFixed(2));
       dClass=better?'delta-up':worse?'delta-dn':'delta-neu';
       v2cls=better?'up':worse?'dn':'';
     }
@@ -1790,13 +1826,20 @@ function renderAthleteCard(){
     <div class="player-card">
       <div class="player-left">
         <div class="player-photo">PHOTO</div>
-        <div class="player-name">${a.name}</div>
-        <div class="player-meta">Period ${a.period}</div>
-        <div class="player-sport">${a.type}</div>
+        <div class="player-name">${escHtml(a.name)}</div>
+        <div class="player-meta">Period ${escHtml(a.period)}</div>
+        <div class="player-sport">${escHtml(a.type)}</div>
+        <div class="player-compare">
+          <label>First Date</label>
+          <select id="dash-date-1" onchange="setDashCompare('d1', this.value)">${dashDateOptions(dates, dashCmp.d1)}</select>
+          <label>Second Date</label>
+          <select id="dash-date-2" onchange="setDashCompare('d2', this.value)">${dashDateOptions(dates, dashCmp.d2)}</select>
+          <div class="player-compare-hint">Pick two test dates to compare metrics.</div>
+        </div>
       </div>
       <div class="player-right">
         <table class="stat-table">
-          <thead><tr><th>Metric</th><th>${d1}</th><th>${d2}</th><th>Δ</th></tr></thead>
+          <thead><tr><th>Metric</th><th>${escHtml(d1)}</th><th>${escHtml(d2)}</th><th>Δ</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>
         ${!entries.length?'<p class="text-sm" style="margin-top:12px;">No test data logged yet.</p>':''}
@@ -1951,10 +1994,24 @@ const DRESS_LABELS = {NS:'No Shirt', NP:'No Pants/Shorts', WP:'Wore Pants', NSH:
 const PART_LABELS = {LE:'Lack of Effort', CNP:'Choose Not to Participate'};
 
 // return true if dateISO is within [start,end]; blank bounds are open-ended
+function dateKey(d){
+  if (d==null || d==='') return '';
+  return String(d).slice(0,10);
+}
 function inRange(dateISO, start, end){
-  if (start && dateISO < start) return false;
-  if (end && dateISO > end) return false;
+  const d = dateKey(dateISO);
+  if (!d) return !(start || end);
+  const s = dateKey(start), e = dateKey(end);
+  if (s && d < s) return false;
+  if (e && d > e) return false;
   return true;
+}
+function athleteStore(store, id){
+  if (!store || typeof store !== 'object') return {};
+  if (store[id] && typeof store[id]==='object' && !Array.isArray(store[id])) return store[id];
+  const k = String(id);
+  if (store[k] && typeof store[k]==='object' && !Array.isArray(store[k])) return store[k];
+  return {};
 }
 
 // Build the inner .rpt block for a single athlete
@@ -1962,7 +2019,7 @@ function buildAthleteReport(a, start, end, rangeLabel){
   const aid = a.id;
 
   // ── ATTENDANCE ──
-  const attAll = attendanceData[aid] || {};
+  const attAll = athleteStore(attendanceData, aid);
   const attRows = Object.keys(attAll)
     .filter(d=>inRange(d,start,end))
     .sort()
@@ -1975,14 +2032,14 @@ function buildAthleteReport(a, start, end, rangeLabel){
     : null;
 
   // ── DRESS CODE (tally only) ──
-  const dressAll = dressData[aid] || {};
+  const dressAll = athleteStore(dressData, aid);
   const dressDates = Object.keys(dressAll).filter(d=>inRange(d,start,end)).sort();
   const dressByType = {NS:0,NP:0,WP:0,NSH:0};
   dressDates.forEach(d=>{ const t=dressAll[d]; if(dressByType[t]!=null) dressByType[t]++; });
   const dressTotal = dressDates.length;
 
   // ── PARTICIPATION (tally only) ──
-  const partAll = participationData[aid] || {};
+  const partAll = athleteStore(participationData, aid);
   const partDates = Object.keys(partAll).filter(d=>inRange(d,start,end)).sort();
   const partByType = {LE:0,CNP:0};
   partDates.forEach(d=>{ const t=partAll[d]; if(partByType[t]!=null) partByType[t]++; });
@@ -1993,8 +2050,8 @@ function buildAthleteReport(a, start, end, rangeLabel){
 
   // ── NOTES ──
   const noteRows = notes
-    .filter(n=>n.athleteId===aid && inRange(n.date,start,end))
-    .sort((x,y)=>x.date.localeCompare(y.date));
+    .filter(n=>idsEqual(n.athleteId, aid) && inRange(n.date,start,end))
+    .sort((x,y)=>String(x.date||'').localeCompare(String(y.date||'')));
 
   // dress-code tally: total + type breakdown on one line
   const dressTypeInline = dressTotal
@@ -2019,13 +2076,14 @@ function buildAthleteReport(a, start, end, rangeLabel){
        </div>`
     : '<div class="rpt-empty">No participation incidents in this range.</div>';
 
+  const allPerf = athEntries(aid);
   const perfTable = perf.length
     ? `<table class="rpt-table"><thead><tr>
         <th>Date</th><th>BW</th><th>Fly10 s</th><th>Fly10 mph</th><th>Jump in</th><th>RSI</th>
         <th>Back Sq</th><th>Bench</th><th>Trap DL</th><th>Str DL</th><th>400m</th>
        </tr></thead><tbody>
         ${perf.map(e=>`<tr>
-          <td>${e.date}</td><td>${fmtVal(e.bw)}</td><td>${fmtVal(e.fly)}</td>
+          <td>${e.date||'—'}</td><td>${fmtVal(e.bw)}</td><td>${fmtVal(e.fly)}</td>
           <td>${flyToMPH(e.fly)||'—'}</td><td>${fmtVal(e.jump)}</td><td>${fmtVal(e.rsi)}</td>
           <td>${fmtVal(e.bsq)}</td><td>${fmtVal(e.bench)}</td><td>${fmtVal(e.tbdl)}</td>
           <td>${fmtVal(e.sbdl)}</td><td>${fmtVal(e.m400)}</td>
@@ -2033,13 +2091,17 @@ function buildAthleteReport(a, start, end, rangeLabel){
        </tbody></table>`
     : '<div class="rpt-empty">No performance entries in this range.</div>';
 
-  // change since previous test (compare most recent two entries in range)
+  // change vs previous test: most recent two in range, or in-range test vs prior test overall
   const curr = perf[perf.length-1] || null;
-  const prev = perf[perf.length-2] || null;
-  // one column definition covering every perf-table column (in order)
+  let prev = perf.length>=2 ? perf[perf.length-2] : null;
+  if (curr && !prev) {
+    const idx = allPerf.findIndex(e => idsEqual(e.id, curr.id));
+    if (idx > 0) prev = allPerf[idx-1];
+  }
   const changeCol = (v1, v2, higherBetter) => {
-    if (v1==null || v2==null) return '<td>—</td>';
-    const a=parseFloat(v1), b=parseFloat(v2), d=b-a;
+    const n1=toNum(v1), n2=toNum(v2);
+    if (n1==null || n2==null) return '<td>—</td>';
+    const d=n2-n1;
     if (d===0) return '<td class="chg-neu">no change</td>';
     const good = higherBetter==null ? null : (higherBetter ? d>0 : d<0);
     const cls = good==null ? 'chg-neu' : (good ? 'chg-up' : 'chg-dn');
@@ -2048,26 +2110,31 @@ function buildAthleteReport(a, start, end, rangeLabel){
   let perfChange = '';
   if (curr && prev){
     const cells =
-      changeCol(prev.bw, curr.bw, null) +                         // BW: no better/worse direction
-      changeCol(prev.fly, curr.fly, false) +                      // Fly sec: lower is better
-      changeCol(flyToMPH(prev.fly), flyToMPH(curr.fly), true) +   // Fly mph: higher is better
+      changeCol(prev.bw, curr.bw, null) +
+      changeCol(prev.fly, curr.fly, false) +
+      changeCol(flyToMPH(prev.fly), flyToMPH(curr.fly), true) +
       changeCol(prev.jump, curr.jump, true) +
       changeCol(prev.rsi, curr.rsi, true) +
       changeCol(prev.bsq, curr.bsq, true) +
       changeCol(prev.bench, curr.bench, true) +
       changeCol(prev.tbdl, curr.tbdl, true) +
       changeCol(prev.sbdl, curr.sbdl, true) +
-      changeCol(prev.m400, curr.m400, false);                     // 400m: lower is better
+      changeCol(prev.m400, curr.m400, false);
+    const outsideNote = !inRange(prev.date, start, end)
+      ? ' · prior test is outside the selected date range'
+      : '';
     perfChange = `
-      <div class="rpt-change-note">Change from ${prev.date} → ${curr.date} (increase / decrease vs. previous test)</div>
-      <table class="rpt-table"><thead><tr>
+      <div class="rpt-change-note">Change from ${prev.date} → ${curr.date} (increase / decrease vs. previous test)${outsideNote}</div>
+      <div class="tbl-wrap"><table class="rpt-table"><thead><tr>
         <th>&nbsp;</th><th>BW</th><th>Fly10 s</th><th>Fly10 mph</th><th>Jump in</th><th>RSI</th>
         <th>Back Sq</th><th>Bench</th><th>Trap DL</th><th>Str DL</th><th>400m</th>
       </tr></thead><tbody>
         <tr><td style="font-weight:700;">Change</td>${cells}</tr>
-      </tbody></table>`;
+      </tbody></table></div>`;
   } else if (curr && !prev){
-    perfChange = `<div class="rpt-change-note">Only one test date in range — no prior test to compare against.</div>`;
+    perfChange = `<div class="rpt-change-note">Only one test date recorded — no prior test to compare against.</div>`;
+  } else if (!curr){
+    perfChange = `<div class="rpt-change-note">No test dates available to compute metric change.</div>`;
   }
 
   // notes table
@@ -2146,18 +2213,18 @@ function buildGroupSummary(list, start, end, rangeLabel, title){
   const rows = list.map(a=>{
     const aid = a.id;
     // attendance
-    const av = attendanceData[aid] || {};
+    const av = athleteStore(attendanceData, aid);
     const ac = {P:0,A:0,T:0,E:0};
     Object.keys(av).filter(d=>inRange(d,start,end)).forEach(d=>{ if(ac[av[d]]!=null){ac[av[d]]++; att[av[d]]++;} });
     const marked = ac.P+ac.A+ac.T+ac.E;
     const rate = marked ? Math.round(((ac.P+ac.T)/marked)*100) : null;
     // dress
-    const dv = dressData[aid] || {};
+    const dv = athleteStore(dressData, aid);
     const dd = Object.keys(dv).filter(d=>inRange(d,start,end));
     dd.forEach(d=>{ if(dress[dv[d]]!=null){dress[dv[d]]++;} });
     if (dd.length) athletesWithViolations++;
     // participation
-    const pv = participationData[aid] || {};
+    const pv = athleteStore(participationData, aid);
     const pd = Object.keys(pv).filter(d=>inRange(d,start,end));
     pd.forEach(d=>{ if(part[pv[d]]!=null){part[pv[d]]++;} });
     if (pd.length) athletesWithPart++;
@@ -2171,7 +2238,7 @@ function buildGroupSummary(list, start, end, rangeLabel, title){
       addPerf('tbdl',last.tbdl); addPerf('sbdl',last.sbdl); addPerf('m400',last.m400);
     }
     // notes
-    const nn = notes.filter(n=>n.athleteId===aid && inRange(n.date,start,end));
+    const nn = notes.filter(n=>idsEqual(n.athleteId, aid) && inRange(n.date,start,end));
     totalNotes += nn.length; openNotes += nn.filter(n=>!n.done).length;
 
     return `<tr>
@@ -2285,7 +2352,7 @@ function generateReport(){
   // decide which athletes to include + a cover subtitle
   let list, scopeLabel;
   if (type==='athlete'){
-    const a = getAth(parseInt(document.getElementById('dash-athlete').value));
+    const a = getAth(document.getElementById('dash-athlete').value);
     if (!a){ out.innerHTML = '<div class="card">Select an athlete first.</div>'; return; }
     list = [a];
     scopeLabel = null; // single athlete needs no cover
