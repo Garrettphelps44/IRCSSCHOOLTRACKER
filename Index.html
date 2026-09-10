@@ -276,9 +276,13 @@
   td.lb-gold::after { content:" 🥇"; font-size:11px; }
   td.lb-val { text-align:center; font-size:12px; }
   td.lb-metric { font-weight:700; color:var(--navy); font-family:"Bookman Old Style",Georgia,serif; white-space:nowrap; }
-  #leaderboard-table { min-width:960px; }
+  #leaderboard-table { min-width:1080px; }
   tr.lb-row:hover td { background:#f7f9fc; }
   tr.lb-row td.lb-gold { background:#fffbe6 !important; }
+  td.lb-overall { background:#f4f5f7; font-weight:700; color:var(--navy); text-align:center; font-size:12px; }
+  tr.lb-row:hover td.lb-overall { background:#eceff4; }
+  .class-block{margin-bottom:18px;}
+  .class-block-title{font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:var(--gray2);margin-bottom:8px;font-weight:700;}
 
   .flex{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
   .text-sm{font-size:12px;color:var(--gray2);}
@@ -610,27 +614,7 @@
 <!-- PAGE 4: DASHBOARD -->
 <div id="page-dashboard" class="page">
   <div class="page-title">Dashboard</div>
-  <div class="page-sub">Leaderboard by period · Player card · Class view · Printable reports (single athlete, by period, or overall) via View Mode</div>
-
-  <!-- LEADERBOARD -->
-  <div class="card" style="margin-bottom:18px;">
-    <div class="card-title">🏆 Period Leaderboard — Average Per Test Date</div>
-    <div class="text-sm" style="margin-bottom:14px;color:var(--gray2);">
-      Each period's avg is the mean of its most recent test date per athlete.
-      Columns cover <strong>all periods (1–8)</strong>.
-      <strong style="color:var(--crimson);">Gold</strong> = best class for that metric.
-    </div>
-    <div class="tbl-wrap">
-      <table id="leaderboard-table">
-        <thead>
-          <tr id="leaderboard-head">
-            <th>Metric</th>
-          </tr>
-        </thead>
-        <tbody id="leaderboard-body"></tbody>
-      </table>
-    </div>
-  </div>
+  <div class="page-sub">Leaderboard by period · Player card · Class / overall averages over a date range · Printable reports via View Mode</div>
 
   <div class="card no-print" id="dash-controls-card" style="padding:14px 16px;">
     <div class="flex" style="align-items:flex-end;">
@@ -640,6 +624,7 @@
           <optgroup label="Dashboard">
             <option value="athlete">Single Athlete</option>
             <option value="class">Class Period</option>
+            <option value="overall">Overall Class</option>
           </optgroup>
           <optgroup label="Reports (Print / PDF)">
             <option value="report-athlete">Report — Single Athlete</option>
@@ -658,20 +643,41 @@
           <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option>
         </select>
       </div>
-      <div id="dash-report-start-wrap" style="display:none;">
+      <div id="dash-report-start-wrap">
         <label style="margin-bottom:4px;">Start Date</label>
-        <input type="date" id="report-start" style="width:150px;" onchange="renderDashboard()">
+        <input type="date" id="report-start" style="width:150px;" onchange="onDashRangeChange()">
       </div>
-      <div id="dash-report-end-wrap" style="display:none;">
+      <div id="dash-report-end-wrap">
         <label style="margin-bottom:4px;">End Date</label>
-        <input type="date" id="report-end" style="width:150px;" onchange="renderDashboard()">
+        <input type="date" id="report-end" style="width:150px;" onchange="onDashRangeChange()">
       </div>
       <div id="dash-print-wrap" style="display:none;">
         <button class="btn btn-primary" onclick="printReport()">🖨️ Print / Save PDF</button>
       </div>
     </div>
-    <div class="text-sm" id="dash-report-hint" style="margin-top:10px;display:none;">Leave dates blank to include all recorded data. The report shows below and is what prints.</div>
+    <div class="text-sm" id="dash-report-hint" style="margin-top:10px;">Leave dates blank to include all test dates. Leaderboard and class averages use this range.</div>
   </div>
+
+  <!-- LEADERBOARD -->
+  <div class="card" style="margin-bottom:18px;">
+    <div class="card-title">🏆 Period Leaderboard — Average Over Date Range</div>
+    <div class="text-sm" style="margin-bottom:8px;color:var(--gray2);" id="leaderboard-range-hint">
+      Each period's avg is the mean of its athletes' test averages in the selected range.
+      <strong>Overall</strong> = all athletes combined.
+      <strong style="color:var(--crimson);">Gold</strong> = best period for that metric.
+    </div>
+    <div class="tbl-wrap">
+      <table id="leaderboard-table">
+        <thead>
+          <tr id="leaderboard-head">
+            <th>Metric</th>
+          </tr>
+        </thead>
+        <tbody id="leaderboard-body"></tbody>
+      </table>
+    </div>
+  </div>
+
   <div id="dash-output"></div>
 </div>
 
@@ -1670,48 +1676,114 @@ function saveAllQuickLog(){
 function clearQuickLog(){ renderQuickLog(); }
 
 // ── PAGE 4: LEADERBOARD ─────────────────────────────────────────
-const LB_METRICS = [
-  {key:'bw',    label:'Body Weight (lbs)',  higherBetter:true},
-  {key:'fly',   label:'Flying 10 (mph)',    higherBetter:true, calc:e=>flyToMPH(e.fly)},
-  {key:'jump',  label:'Jump Height (in)',   higherBetter:true},
-  {key:'rsi',   label:'RSI',               higherBetter:true},
-  {key:'bsq',   label:'Back Squat (lbs)',  higherBetter:true},
-  {key:'bench', label:'Bench Press (lbs)', higherBetter:true},
-  {key:'tbdl',  label:'Trap Bar DL (lbs)', higherBetter:true},
-  {key:'sbdl',  label:'Str Bar DL (lbs)',  higherBetter:true},
-  {key:'m400',  label:'400m (sec)',         higherBetter:false},
-];
+const METRIC_INFO = {
+  bw:    {label:'Body Weight (lbs)', short:'BW',        higherBetter:true},
+  fly:   {label:'Flying 10 (mph)',   short:'Fly10 mph', higherBetter:true, calc:e=>flyToMPH(e.fly)},
+  jump:  {label:'Jump Height (in)',  short:'Jump',      higherBetter:true},
+  rsi:   {label:'RSI',               short:'RSI',       higherBetter:true},
+  bsq:   {label:'Back Squat (lbs)',  short:'Back Sq',   higherBetter:true},
+  bench: {label:'Bench Press (lbs)', short:'Bench',     higherBetter:true},
+  tbdl:  {label:'Trap Bar DL (lbs)', short:'Trap DL',   higherBetter:true},
+  sbdl:  {label:'Str Bar DL (lbs)',  short:'Str DL',    higherBetter:true},
+  m400:  {label:'400m (sec)',        short:'400m',      higherBetter:false},
+};
+function dashMetrics(){
+  return dbTests.map(t=>{
+    const info = METRIC_INFO[t.key];
+    if (info) return {key:t.key, label:info.label, short:info.short, higherBetter:info.higherBetter, calc:info.calc};
+    return {key:t.key, label:t.label, short:t.label, higherBetter:true};
+  });
+}
+function reportPerfColumns(){
+  const cols = [];
+  dbTests.forEach(t=>{
+    if (t.key==='fly'){
+      cols.push({label:'Fly10 s', val:e=>e.fly, higherBetter:false});
+      cols.push({label:'Fly10 mph', val:e=>flyToMPH(e.fly), higherBetter:true});
+    } else {
+      const info = METRIC_INFO[t.key];
+      cols.push({
+        label: t.label,
+        val: e => e[t.key],
+        higherBetter: t.key==='bw' ? null : (info ? info.higherBetter : true)
+      });
+    }
+  });
+  return cols;
+}
+
+function dashRangeBounds(){
+  return {
+    start: document.getElementById('report-start')?.value || '',
+    end: document.getElementById('report-end')?.value || ''
+  };
+}
+function dashRangeLabel(){
+  const {start, end} = dashRangeBounds();
+  if (start || end) return `${start||'beginning'} → ${end||'present'}`;
+  return 'All recorded tests';
+}
+function athleteAvgInRange(aid, metricKey, calc, start, end){
+  const vals = athEntries(aid)
+    .filter(e => inRange(e.date, start, end))
+    .map(e => toNum(calc ? calc(e) : e[metricKey]))
+    .filter(v => v != null);
+  if (!vals.length) return null;
+  return vals.reduce((s,v)=>s+v,0)/vals.length;
+}
+function groupAvgInRange(group, metricKey, calc, start, end){
+  const vals = group.map(a => athleteAvgInRange(a.id, metricKey, calc, start, end)).filter(v => v != null);
+  if (!vals.length) return null;
+  return vals.reduce((s,v)=>s+v,0)/vals.length;
+}
+function fmtAvg(n, digits=1){
+  return n==null ? '—' : n.toFixed(digits);
+}
+function onDashRangeChange(){
+  const {start, end} = dashRangeBounds();
+  if (start && end && start > end){ alert('Start date must be on or before end date'); return; }
+  renderLeaderboard();
+  renderDashboard();
+}
 
 function periodAvg(p, metricKey, calc) {
-  const group = perAths(p);
-  const vals = group.map(a => {
-    const entries = athEntries(a.id);
-    const last = entries[entries.length - 1];
-    if (!last) return null;
-    const v = calc ? calc(last) : last[metricKey];
-    return toNum(v);
-  }).filter(v => v != null);
-  if (!vals.length) return null;
-  return (vals.reduce((s,v) => s+v, 0) / vals.length).toFixed(2);
+  const {start, end} = dashRangeBounds();
+  return groupAvgInRange(perAths(p), metricKey, calc, start, end);
 }
 
 function renderLeaderboard() {
+  const {start, end} = dashRangeBounds();
+  const hint = document.getElementById('leaderboard-range-hint');
+  if (hint) {
+    hint.innerHTML = `Range: <strong>${escHtml(dashRangeLabel())}</strong> ·
+      each period's avg is the mean of its athletes' test averages in this range.
+      <strong>Overall</strong> = all athletes combined.
+      <strong style="color:var(--crimson);">Gold</strong> = best period for that metric.`;
+  }
+
   const head = document.getElementById('leaderboard-head');
   if (head) {
     head.innerHTML = `<th>Metric</th>` + PERIODS.map(p => {
       const n = perAths(p).length;
       return `<th style="text-align:center;">Period ${p}<br><span style="font-size:10px;font-weight:400;opacity:.75;">${n} athletes</span></th>`;
-    }).join('');
+    }).join('') + `<th class="lb-overall-h" style="text-align:center;background:var(--crimson);">Overall<br><span style="font-size:10px;font-weight:400;opacity:.85;">${athletes.length} athletes</span></th>`;
   }
 
   const tbody = document.getElementById('leaderboard-body');
   if (!tbody) return;
 
-  let html = '';
-  LB_METRICS.forEach(m => {
-    const avgs = PERIODS.map(p => periodAvg(p, m.key, m.calc));
+  const metrics = dashMetrics();
+  if (!metrics.length){
+    tbody.innerHTML = `<tr><td colspan="${PERIODS.length+2}" style="text-align:center;color:var(--gray2);padding:16px;">No tests in the database.</td></tr>`;
+    return;
+  }
 
-    const nonNull = avgs.map((v,i) => v!=null ? {v:parseFloat(v),i} : null).filter(Boolean);
+  let html = '';
+  metrics.forEach(m => {
+    const avgs = PERIODS.map(p => periodAvg(p, m.key, m.calc));
+    const overall = groupAvgInRange(athletes, m.key, m.calc, start, end);
+
+    const nonNull = avgs.map((v,i) => v!=null ? {v,i} : null).filter(Boolean);
     let bestIdx = null;
     if (nonNull.length) {
       bestIdx = nonNull.reduce((best, cur) => {
@@ -1721,13 +1793,13 @@ function renderLeaderboard() {
 
     const cells = avgs.map((v, i) => {
       const isGold = (i === bestIdx && v != null);
-      const display = v != null ? v : '—';
-      return `<td class="lb-val${isGold ? ' lb-gold' : ''}">${display}</td>`;
+      return `<td class="lb-val${isGold ? ' lb-gold' : ''}">${fmtAvg(v,2)}</td>`;
     }).join('');
 
     html += `<tr class="lb-row">
       <td class="lb-metric">${m.label}</td>
       ${cells}
+      <td class="lb-overall">${fmtAvg(overall,2)}</td>
     </tr>`;
   });
 
@@ -1735,17 +1807,6 @@ function renderLeaderboard() {
 }
 
 
-const METRICS=[
-  {key:'bw',    label:'Body Weight (lbs)', higherBetter:true},
-  {key:'fly',   label:'Flying 10 (mph)',   higherBetter:true, calc:e=>flyToMPH(e.fly)},
-  {key:'jump',  label:'Jump Height (in)',  higherBetter:true},
-  {key:'rsi',   label:'RSI',              higherBetter:true},
-  {key:'bsq',   label:'Back Squat',       higherBetter:true},
-  {key:'bench', label:'Bench Press',      higherBetter:true},
-  {key:'tbdl',  label:'Trap Bar DL',      higherBetter:true},
-  {key:'sbdl',  label:'Str Bar DL',       higherBetter:true},
-  {key:'m400',  label:'400m (sec)',        higherBetter:false},
-];
 const getVal=(e,m)=>{ if(!e) return null; if(m.calc) return m.calc(e); const v=e[m.key]; return (v==null||v==='')?null:v; };
 
 let dashCmp = { aid:null, d1:'', d2:'' };
@@ -1766,17 +1827,19 @@ function toggleDashMode(){
   document.getElementById('dash-athlete-wrap').style.display=(m==='athlete'||m==='report-athlete')?'':'none';
   // period selector: dashboard class OR report by-period
   document.getElementById('dash-period-wrap').style.display =(m==='class'||m==='report-period')?'':'none';
-  // report-only controls
-  document.getElementById('dash-report-start-wrap').style.display = isReport?'':'none';
-  document.getElementById('dash-report-end-wrap').style.display   = isReport?'':'none';
   document.getElementById('dash-print-wrap').style.display        = isReport?'':'none';
-  document.getElementById('dash-report-hint').style.display       = isReport?'':'none';
+  const hint=document.getElementById('dash-report-hint');
+  if (hint) {
+    hint.textContent = isReport
+      ? 'Leave dates blank to include all recorded data. The report shows below and is what prints.'
+      : 'Leave dates blank to include all test dates. Leaderboard and class averages use this range.';
+  }
   renderDashboard();
 }
 function renderDashboard(){
   const m=document.getElementById('dash-mode').value;
   if(m==='athlete') renderAthleteCard();
-  else if(m==='class') renderClassView();
+  else if(m==='class'||m==='overall') renderClassView();
   else generateReport(); // report-athlete | report-period | report-all
 }
 function dashDateOptions(dates, selected){
@@ -1807,7 +1870,8 @@ function renderAthleteCard(){
   const prev=entries.find(e=>e.date===dashCmp.d1)||null;
   const curr=entries.find(e=>e.date===dashCmp.d2)||null;
   const d1=dashCmp.d1||'—', d2=dashCmp.d2||'—';
-  const rows=METRICS.map(m=>{
+  const metrics=dashMetrics();
+  const rows=metrics.map(m=>{
     const v1=getVal(prev,m), v2=getVal(curr,m);
     let delta='—',dClass='delta-neu',v2cls='';
     const n1=toNum(v1), n2=toNum(v2);
@@ -1847,34 +1911,101 @@ function renderAthleteCard(){
     </div>`;
 }
 function renderClassView(){
+  const overall=document.getElementById('dash-mode').value==='overall';
   const p=document.getElementById('dash-period').value;
-  const grp=perAths(p);
-  if(!grp.length){document.getElementById('dash-output').innerHTML='<div class="card">No athletes in this period.</div>';return;}
-  const rows=grp.map(a=>({a,curr:athEntries(a.id).slice(-1)[0]||null}));
-  const avg=(key,calc)=>{
-    const vals=rows.map(r=>r.curr?(calc?calc(r.curr):r.curr[key]):null).filter(v=>v!=null).map(Number);
-    return vals.length?(vals.reduce((s,v)=>s+v,0)/vals.length).toFixed(1):'—';
+  const grp=overall
+    ? [...athletes].sort((a,b)=>a.period.localeCompare(b.period)||a.name.localeCompare(b.name))
+    : perAths(p);
+  if(!grp.length){
+    document.getElementById('dash-output').innerHTML=`<div class="card">No athletes ${overall?'on the roster':'in this period'}.</div>`;
+    return;
+  }
+  const {start, end}=dashRangeBounds();
+  if (start && end && start > end){
+    document.getElementById('dash-output').innerHTML='<div class="card">Start date must be on or before end date.</div>';
+    return;
+  }
+
+  const metrics=dashMetrics();
+  const metricHead=metrics.map(m=>`<th>${escHtml(m.short||m.label)}</th>`).join('');
+  const nameCols=overall?2:1;
+  const colCount=nameCols+metrics.length;
+  const title=overall?`Overall Class — All Athletes`:`Period ${escHtml(p)} — Class Averages`;
+
+  const byAth=new Map();
+  const dateSet=new Set();
+  grp.forEach(a=>{
+    const list=athEntries(a.id).filter(e=>inRange(e.date,start,end));
+    byAth.set(a.id, list);
+    list.forEach(e=>{ if(e.date) dateSet.add(dateKey(e.date)); });
+  });
+  const dates=[...dateSet].sort();
+  const totalEntries=grp.reduce((n,a)=>n+(byAth.get(a.id)||[]).length,0);
+
+  const avgFromList=(list, m)=>{
+    const vals=list.map(e=>toNum(getVal(e,m))).filter(v=>v!=null);
+    if(!vals.length) return null;
+    return vals.reduce((s,v)=>s+v,0)/vals.length;
   };
-  const avgRow=`<tr class="class-avg-row"><td>CLASS AVG</td>
-    <td>${avg('bw')}</td><td>${avg('fly',e=>flyToMPH(e.fly))}</td>
-    <td>${avg('jump')}</td><td>${avg('rsi')}</td>
-    <td>${avg('bsq')}</td><td>${avg('bench')}</td>
-    <td>${avg('tbdl')}</td><td>${avg('sbdl')}</td><td>${avg('m400')}</td></tr>`;
-  const athRows=rows.map(({a,curr})=>{
-    const f=v=>v!=null?v:'—'; const mph=curr?flyToMPH(curr.fly):'—';
-    return `<tr><td><strong>${a.name}</strong></td>
-      <td>${curr?f(curr.bw):'—'}</td><td>${mph||'—'}</td>
-      <td>${curr?f(curr.jump):'—'}</td><td>${curr?f(curr.rsi):'—'}</td>
-      <td>${curr?f(curr.bsq):'—'}</td><td>${curr?f(curr.bench):'—'}</td>
-      <td>${curr?f(curr.tbdl):'—'}</td><td>${curr?f(curr.sbdl):'—'}</td>
-      <td>${curr?f(curr.m400):'—'}</td></tr>`;
+  const dateAvg=(date, m)=>{
+    const vals=grp.map(a=>{
+      const e=(byAth.get(a.id)||[]).find(x=>dateKey(x.date)===date);
+      return e ? toNum(getVal(e,m)) : null;
+    }).filter(v=>v!=null);
+    if(!vals.length) return '—';
+    return (vals.reduce((s,v)=>s+v,0)/vals.length).toFixed(1);
+  };
+  const dateRows=dates.length
+    ? dates.map(d=>{
+        const n=grp.filter(a=>(byAth.get(a.id)||[]).some(e=>dateKey(e.date)===d)).length;
+        return `<tr><td><strong>${escHtml(d)}</strong></td>
+          ${metrics.map(m=>`<td>${dateAvg(d,m)}</td>`).join('')}
+          <td>${n}</td></tr>`;
+      }).join('')
+    : `<tr><td colspan="${metrics.length+2}" style="text-align:center;color:var(--gray2);padding:16px;">No tests in this range.</td></tr>`;
+
+  const classAvg=(m)=>{
+    const vals=grp.map(a=>avgFromList(byAth.get(a.id)||[], m)).filter(v=>v!=null);
+    if(!vals.length) return null;
+    return vals.reduce((s,v)=>s+v,0)/vals.length;
+  };
+  const avgRow=`<tr class="class-avg-row">
+    <td colspan="${nameCols}">${overall?'OVERALL AVG':'CLASS AVG'}</td>
+    ${metrics.map(m=>`<td>${fmtAvg(classAvg(m))}</td>`).join('')}
+  </tr>`;
+
+  let lastP=null;
+  const athRows=grp.map(a=>{
+    let hdr='';
+    if (overall && a.period!==lastP){
+      lastP=a.period;
+      hdr=`<tr class="db-period-hdr"><td colspan="${colCount}">Period ${escHtml(a.period)}</td></tr>`;
+    }
+    const cells=metrics.map(m=>`<td>${fmtAvg(avgFromList(byAth.get(a.id)||[], m))}</td>`).join('');
+    return `${hdr}<tr><td><strong>${escHtml(a.name)}</strong></td>
+      ${overall?`<td>P${escHtml(a.period)}</td>`:''}
+      ${cells}</tr>`;
   }).join('');
+
   document.getElementById('dash-output').innerHTML=`
-    <div class="tbl-wrap"><table>
-      <thead><tr><th>Athlete</th><th>BW</th><th>Fly10 mph</th><th>Jump</th><th>RSI</th>
-        <th>Back Sq</th><th>Bench</th><th>Trap DL</th><th>Str DL</th><th>400m</th></tr></thead>
-      <tbody>${avgRow}${athRows}</tbody>
-    </table></div>`;
+    <div class="class-block">
+      <div class="class-block-title">${title}</div>
+      <div class="text-sm" style="margin-bottom:12px;">Range: <strong>${escHtml(dashRangeLabel())}</strong> · ${grp.length} athlete${grp.length===1?'':'s'} · ${totalEntries} test entr${totalEntries===1?'y':'ies'} · athlete values are their average in this range</div>
+    </div>
+    <div class="class-block">
+      <div class="class-block-title">Class Average by Test Date</div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Date</th>${metricHead}<th># Tested</th></tr></thead>
+        <tbody>${dateRows}</tbody>
+      </table></div>
+    </div>
+    <div class="class-block">
+      <div class="class-block-title">${overall?'Athlete Averages (All Periods)':'Athlete Averages'}</div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Athlete</th>${overall?'<th>Per.</th>':''}${metricHead}</tr></thead>
+        <tbody>${avgRow}${athRows}</tbody>
+      </table></div>
+    </div>`;
 }
 
 // ── PAGE 5: NOTES ────────────────────────────────────────────────
@@ -2077,16 +2208,14 @@ function buildAthleteReport(a, start, end, rangeLabel){
     : '<div class="rpt-empty">No participation incidents in this range.</div>';
 
   const allPerf = athEntries(aid);
+  const rptCols = reportPerfColumns();
+  const rptHead = rptCols.map(c=>`<th>${escHtml(c.label)}</th>`).join('');
   const perfTable = perf.length
     ? `<table class="rpt-table"><thead><tr>
-        <th>Date</th><th>BW</th><th>Fly10 s</th><th>Fly10 mph</th><th>Jump in</th><th>RSI</th>
-        <th>Back Sq</th><th>Bench</th><th>Trap DL</th><th>Str DL</th><th>400m</th>
+        <th>Date</th>${rptHead}
        </tr></thead><tbody>
         ${perf.map(e=>`<tr>
-          <td>${e.date||'—'}</td><td>${fmtVal(e.bw)}</td><td>${fmtVal(e.fly)}</td>
-          <td>${flyToMPH(e.fly)||'—'}</td><td>${fmtVal(e.jump)}</td><td>${fmtVal(e.rsi)}</td>
-          <td>${fmtVal(e.bsq)}</td><td>${fmtVal(e.bench)}</td><td>${fmtVal(e.tbdl)}</td>
-          <td>${fmtVal(e.sbdl)}</td><td>${fmtVal(e.m400)}</td>
+          <td>${e.date||'—'}</td>${rptCols.map(c=>`<td>${fmtVal(c.val(e))}</td>`).join('')}
         </tr>`).join('')}
        </tbody></table>`
     : '<div class="rpt-empty">No performance entries in this range.</div>';
@@ -2109,25 +2238,14 @@ function buildAthleteReport(a, start, end, rangeLabel){
   };
   let perfChange = '';
   if (curr && prev){
-    const cells =
-      changeCol(prev.bw, curr.bw, null) +
-      changeCol(prev.fly, curr.fly, false) +
-      changeCol(flyToMPH(prev.fly), flyToMPH(curr.fly), true) +
-      changeCol(prev.jump, curr.jump, true) +
-      changeCol(prev.rsi, curr.rsi, true) +
-      changeCol(prev.bsq, curr.bsq, true) +
-      changeCol(prev.bench, curr.bench, true) +
-      changeCol(prev.tbdl, curr.tbdl, true) +
-      changeCol(prev.sbdl, curr.sbdl, true) +
-      changeCol(prev.m400, curr.m400, false);
+    const cells = rptCols.map(c=>changeCol(c.val(prev), c.val(curr), c.higherBetter)).join('');
     const outsideNote = !inRange(prev.date, start, end)
       ? ' · prior test is outside the selected date range'
       : '';
     perfChange = `
       <div class="rpt-change-note">Change from ${prev.date} → ${curr.date} (increase / decrease vs. previous test)${outsideNote}</div>
       <div class="tbl-wrap"><table class="rpt-table"><thead><tr>
-        <th>&nbsp;</th><th>BW</th><th>Fly10 s</th><th>Fly10 mph</th><th>Jump in</th><th>RSI</th>
-        <th>Back Sq</th><th>Bench</th><th>Trap DL</th><th>Str DL</th><th>400m</th>
+        <th>&nbsp;</th>${rptHead}
       </tr></thead><tbody>
         <tr><td style="font-weight:700;">Change</td>${cells}</tr>
       </tbody></table></div>`;
@@ -2205,9 +2323,10 @@ function buildGroupSummary(list, start, end, rangeLabel, title){
   const part = {LE:0,CNP:0};
   let totalTests = 0, athletesWithViolations = 0, athletesWithPart = 0, totalNotes = 0, openNotes = 0;
 
-  // per-athlete roll-up rows + running sums for performance averages
-  const perfSum = {bw:0,flymph:0,jump:0,rsi:0,bsq:0,bench:0,tbdl:0,sbdl:0,m400:0};
-  const perfCnt = {bw:0,flymph:0,jump:0,rsi:0,bsq:0,bench:0,tbdl:0,sbdl:0,m400:0};
+  const metrics = dashMetrics();
+  const perfSum = {};
+  const perfCnt = {};
+  metrics.forEach(m=>{ perfSum[m.key]=0; perfCnt[m.key]=0; });
   const addPerf = (k,v)=>{ if(v!=null && v!=='' && !isNaN(v)){ perfSum[k]+=parseFloat(v); perfCnt[k]++; } };
 
   const rows = list.map(a=>{
@@ -2228,15 +2347,11 @@ function buildGroupSummary(list, start, end, rangeLabel, title){
     const pd = Object.keys(pv).filter(d=>inRange(d,start,end));
     pd.forEach(d=>{ if(part[pv[d]]!=null){part[pv[d]]++;} });
     if (pd.length) athletesWithPart++;
-    // performance (latest test in range for averages)
+    // performance: each athlete's average across all tests in the date range
     const perf = athEntries(aid).filter(e=>inRange(e.date,start,end));
     totalTests += perf.length;
     const last = perf[perf.length-1] || null;
-    if (last){
-      addPerf('bw',last.bw); addPerf('flymph',flyToMPH(last.fly)); addPerf('jump',last.jump);
-      addPerf('rsi',last.rsi); addPerf('bsq',last.bsq); addPerf('bench',last.bench);
-      addPerf('tbdl',last.tbdl); addPerf('sbdl',last.sbdl); addPerf('m400',last.m400);
-    }
+    metrics.forEach(m=>addPerf(m.key, athleteAvgInRange(aid, m.key, m.calc, start, end)));
     // notes
     const nn = notes.filter(n=>idsEqual(n.athleteId, aid) && inRange(n.date,start,end));
     totalNotes += nn.length; openNotes += nn.filter(n=>!n.done).length;
@@ -2261,6 +2376,33 @@ function buildGroupSummary(list, start, end, rangeLabel, title){
   const partTotal = part.LE+part.CNP;
 
   const avg = k => perfCnt[k] ? (perfSum[k]/perfCnt[k]).toFixed(2) : '—';
+
+  const PERF_COLS = metrics.map(m=>({key:m.key, label:m.short||m.label, calc:m.calc}));
+  const dateSet = new Set();
+  const byAth = new Map();
+  list.forEach(a=>{
+    const entries = athEntries(a.id).filter(e=>inRange(e.date,start,end));
+    byAth.set(a.id, entries);
+    entries.forEach(e=>{ if(e.date) dateSet.add(dateKey(e.date)); });
+  });
+  const dates = [...dateSet].sort();
+  const dateAvg = (date, col) => {
+    const vals = list.map(a=>{
+      const e = (byAth.get(a.id)||[]).find(x=>dateKey(x.date)===date);
+      if (!e) return null;
+      return toNum(col.calc ? col.calc(e) : e[col.key]);
+    }).filter(v=>v!=null);
+    if (!vals.length) return '—';
+    return (vals.reduce((s,v)=>s+v,0)/vals.length).toFixed(2);
+  };
+  const dateRows = dates.length
+    ? dates.map(d=>{
+        const n = list.filter(a=>(byAth.get(a.id)||[]).some(e=>dateKey(e.date)===d)).length;
+        return `<tr><td style="text-align:left;font-weight:700;">${escHtml(d)}</td>
+          ${PERF_COLS.map(c=>`<td>${dateAvg(d,c)}</td>`).join('')}
+          <td>${n}</td></tr>`;
+      }).join('')
+    : `<tr><td colspan="${PERF_COLS.length+2}" class="rpt-empty">No tests in this range.</td></tr>`;
 
   const dressInline = dressTotal
     ? Object.keys(dress).filter(t=>dress[t]>0)
@@ -2313,17 +2455,24 @@ function buildGroupSummary(list, start, end, rangeLabel, title){
       </div>
 
       <div class="rpt-section">
-        <div class="rpt-section-title">Group Performance Averages (most recent test per athlete)</div>
+        <div class="rpt-section-title">Group Performance Averages (all tests in date range)</div>
         <div class="tbl-wrap"><table class="rpt-table"><thead><tr>
-          <th>&nbsp;</th><th>BW</th><th>Fly10 mph</th><th>Jump in</th><th>RSI</th>
-          <th>Back Sq</th><th>Bench</th><th>Trap DL</th><th>Str DL</th><th>400m</th>
+          <th>&nbsp;</th>${metrics.map(m=>`<th>${escHtml(m.short||m.label)}</th>`).join('')}
         </tr></thead><tbody>
           <tr><td style="font-weight:700;">Group Avg</td>
-            <td>${avg('bw')}</td><td>${avg('flymph')}</td><td>${avg('jump')}</td><td>${avg('rsi')}</td>
-            <td>${avg('bsq')}</td><td>${avg('bench')}</td><td>${avg('tbdl')}</td><td>${avg('sbdl')}</td><td>${avg('m400')}</td>
+            ${metrics.map(m=>`<td>${avg(m.key)}</td>`).join('')}
           </tr>
         </tbody></table></div>
-        <div class="text-sm" style="margin-top:6px;">Based on ${totalTests} total test entr${totalTests===1?'y':'ies'} in range · ${totalNotes} note${totalNotes===1?'':'s'} (${openNotes} open)</div>
+        <div class="text-sm" style="margin-top:6px;">Each athlete is averaged across every test in the range, then those athlete averages are combined. Based on ${totalTests} total test entr${totalTests===1?'y':'ies'} · ${totalNotes} note${totalNotes===1?'':'s'} (${openNotes} open)</div>
+      </div>
+
+      <div class="rpt-section">
+        <div class="rpt-section-title">Group Average by Test Date</div>
+        <div class="tbl-wrap"><table class="rpt-table"><thead><tr>
+          <th>Date</th>
+          ${PERF_COLS.map(c=>`<th>${c.label}</th>`).join('')}
+          <th># Tested</th>
+        </tr></thead><tbody>${dateRows}</tbody></table></div>
       </div>
 
       <div class="rpt-section">
